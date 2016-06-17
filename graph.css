@@ -1,0 +1,145 @@
+.axis
+{
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+}
+
+.rectSelec {
+
+    fill: #b3ffb3;
+    opacity : 0.5;
+    stroke-width : 1.5;
+    stroke: #006600;
+
+}
+svg text{
+    font: 15px arial;
+    font-weight: lighter;
+
+}
+.lgd{
+    width: 0.75em;
+    height: 0.75em;
+}
+.frame{
+    fill:none;
+}
+
+table{
+    border-collapse: collapse;
+    table-layout: fixed;
+    overflow: scroll;
+    vertical-align: top;
+    cursor: default;
+}
+
+
+tr.outlined td{
+    border-top: 1px double black;
+    border-bottom: 1px solid black;
+}
+
+tr.outlined td:nth-of-type(1){
+    border-left: 1px solid black;
+}
+
+
+tr.outlined td:nth-of-type(2){
+    border-right: 1px solid black;
+}
+
+td{
+    padding: 5px;
+    border-top: 1px solid transparent;
+    border-bottom: 1px solid transparent;
+
+}
+
+td:nth-of-type(1){
+    border-left: 1px solid transparent;
+}
+
+td:nth-of-type(2){
+    width: 100%;
+    border-right: 1px solid transparent;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow:ellipsis;
+}
+
+.rectAxis{
+    fill:#ffffff;
+    stroke:#ffffff;
+}
+.data{
+    stroke-width: 0.5;
+}
+
+.part{
+
+    stroke-width: 1;
+    stroke: #fff6f6;
+
+}
+
+
+.container{
+    position: relative;
+}
+
+
+.graph{
+    width:100%;
+    position:relative;
+    background-color: #fcfcfc;
+}
+.diagram{
+    display: inline-block;
+}
+
+.popup{
+    position:absolute;
+    background-color: #fff6f6;
+    border: 1px #ccc solid;
+    border-radius: 6px;
+    box-shadow: #333 2px 2px 4px;
+
+}
+
+table tr:nth-child(even) {
+    background-color: #eee;
+}
+table tr:nth-child(odd) {
+    background-color: #fff;
+}
+
+
+
+.overlay{
+    position:absolute;
+    top: 0;
+    left: 0;
+    width:100%;
+    height: 100%;
+}
+
+
+.elemtext {
+    font: 10px arial;
+    text-anchor: middle;
+
+}
+
+.bckgr-txt{
+    text-anchor: middle;
+    font: 50px sans-serif;
+    font-weight:900;
+
+
+}
+
+.pieSvg{
+
+
+}
