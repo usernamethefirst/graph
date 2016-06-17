@@ -30,7 +30,7 @@ function drawHisto1DStack(urlJson, mydiv) {
         console.log(json);
 
         //test json conformity
-        if(typeof json === "undefined" || json.result == "false" || error){
+        if(typeof json === "undefined" || json.result != "true" || error){
             console.log("incorrect url/data");
             svg.nodata = svg.append("text").attr("transform", "translate(" + ((divWidth-1.1*svg.tableWidth)/2) + "," +
                 (divHeight/2 ) + ")")
@@ -478,30 +478,26 @@ function createHisto2DStackDouble(div,svg,json,mydiv,table){
         "left":((svg.width-svg.side)/2 +svg.margin.left)+"px" ,"top": ((svg.height-svg.side)/2 +svg.margin.top) + "px"});
     svg.popup.pieChart = null;
 
+    svg.timer = null;
+    selection
+        .on("click",function(d){
 
-    selection.on("click",function(d){
-        if(svg.popup.pieChart == null) {
-            overlay.style("display",null);
-            svg.popup.pieChart = svg.popup.append("svg").attr("width", svg.pieside).attr("height", svg.pieside).classed("pieSvg",true);
-            drawComplData("./datacompl.json",svg.popup,svg.pieside,d.height);
-            svg.popup.style("display",null);
-            d3.event.stopPropagation();
+            clearTimeout(svg.timer);   
+            svg.timer = setTimeout(function(){
+                overlay.style("display",null);
+                svg.popup.pieChart = svg.popup.append("svg").attr("width", svg.pieside).attr("height", svg.pieside).classed("pieSvg",true);
+                drawComplData("./datacompl.json",svg.popup,svg.pieside,d.height);
+                svg.popup.style("display",null);
+            },500);
 
-        }
-    });
+        });
 
-    svg.popup.on("click",function(){
-        d3.event.stopPropagation();
-    });
-
-    d3.select(window).on("click." + mydiv,function(){
-        if(svg.popup.pieChart != null){
+    overlay.on("click",function(){
             trSelec.classed("outlined",false);
             overlay.style("display","none");
             svg.popup.style("display","none");
             svg.popup.pieChart.remove();
             svg.popup.pieChart = null;
-        }
     });
 
     //Legend creation
@@ -661,16 +657,19 @@ function addZoomDouble(svg,updateFunction){
     //Vector pointing towards the top left corner of the current view in the x&y ranges frame
     //Calculated from svg.translate
     var actTranslate = [0,0];
-
+    var lastTranslate = [];
 
     //to stop triggering animations during rectselec
     var rectOverlay = svg.frame.append("rect").attr("x",0).attr("y",0)
       .attr("height",svg.height).attr("width",0).attr("fill-opacity",0).classed("rectOverlay",true);
 
 
+    var calcCoord = [];
+
+
     svg.heightData = svg.height - svg.margin.zero;
 
-    svg.zoom = d3.behavior.zoom().scaleExtent([1, Infinity]).center([0,0]).on("zoom", function () {
+    svg.zoom = d3.behavior.zoom().scaleExtent([1, Infinity]).on("zoom", function () {
 
             mouseCoord = d3.mouse(svg.frame.node());
 
@@ -701,6 +700,15 @@ function addZoomDouble(svg,updateFunction){
                     //case: zoom
 
 
+
+                    //Retrieve the cursor coordinates. Quick dirty fix to accept double click while trying to minimize side effects.
+                    calcCoord[0] = -svg.margin.left-(e.translate[0] -lastTranslate[0]*e.scale/svg.scale)/(e.scale/svg.scale-1);
+                    calcCoord[1] = -svg.margin.top-(e.translate[1] -lastTranslate[1]*e.scale/svg.scale)/(e.scale/svg.scale-1);
+                    lastTranslate = e.translate;
+
+                    console.log(mouseCoord);
+                    console.log(calcCoord);
+
                     var lastScalex = svg.scalex;
                     var lastScaley = svg.scaley;
 
@@ -722,9 +730,9 @@ function addZoomDouble(svg,updateFunction){
                     //If possible, the absolute location pointed by the cursor stay the same
                     //Since zoom.translate(translate) doesn't work immediately but at the end of all consecutive zoom actions,
                     //we can't rely on d3.event.translate for smooth zooming and have to separate zoom & translation
-                    svg.translate[0] = Math.min(0, Math.max(svg.translate[0] - mouseCoord[0]*(xrel - 1),svg.width - e.scale*svg.scalex*svg.width ));
+                    svg.translate[0] = Math.min(0, Math.max(svg.translate[0] - calcCoord[0]*(xrel - 1),svg.width - e.scale*svg.scalex*svg.width ));
 
-                    var oldMouse = mouseCoord[1] - svg.translate[1];
+                    var oldMouse = calcCoord[1] - svg.translate[1];
                     
                     var newMouse = oldMouse* yrel + Math.min(svg.margin.zero, Math.max(0,oldMouse - svg.heightOutput*svg.scale*lastScaley))*(1 - yrel);
                     svg.translate[1] = oldMouse - newMouse + svg.translate[1];
@@ -781,7 +789,9 @@ function addZoomDouble(svg,updateFunction){
         })
 
         .on("zoomstart",function () {
+            clearTimeout(svg.timer);
             console.log("translate1 " + svg.translate[1] );
+            lastTranslate = svg.translate;
             if(isShiftKeyDown){
                 console.log("key is down start");
                 rectOverlay.attr("width",svg.width);
@@ -883,7 +893,7 @@ function addZoomDouble(svg,updateFunction){
 
         });
 
-    svg.call(svg.zoom).on("dblclick.zoom", null);
+    svg.call(svg.zoom);
 }
 /************************************************************************************************************/
 
@@ -1369,5 +1379,5 @@ d3.select(window).on("keydown",function (){
     });
 
 
-drawHisto1DStack("/dynamic/netTop10NbExtHosts.json?dd=2016-06-07%2011%3A44&df=2016-06-16%2011%3A44&dh=2", "Graph");
-//drawHisto1DStack("./data2.json", "Graph2");
+//drawHisto1DStack("/dynamic/netTop10NbExtHosts.json?dd=2016-06-07%2011%3A44&df=2016-06-16%2011%3A44&dh=2", "Graph");
+drawHisto1DStack("./data.json", "Graph");
