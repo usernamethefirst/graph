@@ -2,7 +2,6 @@
 {
     fill: none;
     stroke: #000;
-    shape-rendering: crispEdges;
 }
 
 .rectSelec {
@@ -13,24 +12,38 @@
     stroke: #006600;
 
 }
-svg text{
-    font: 15px arial;
-    font-weight: lighter;
 
+svg{
+    shape-rendering: crispEdges;
 }
 .lgd{
     width: 0.75em;
     height: 0.75em;
 }
+
+.tableTitle{
+    border-bottom-style: ridge;
+    margin-top: 0em;
+    margin-bottom: 0em;
+    padding-top: 0.5em;
+    padding-bottom: 0.5em;
+    text-align: center;
+}
+
 .frame{
     fill:none;
 }
+.divtable{
+    vertical-align: top;
+    border-style: ridge;
 
+}
 table{
+
+    width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
     overflow: scroll;
-    vertical-align: top;
     cursor: default;
 }
 
@@ -73,7 +86,7 @@ td:nth-of-type(2){
     stroke:#ffffff;
 }
 .data{
-    stroke-width: 0.5;
+    stroke-width: 1;
 }
 
 .part{
@@ -96,6 +109,25 @@ td:nth-of-type(2){
 }
 .diagram{
     display: inline-block;
+    font-family: 'Open Sans';
+    font-style: normal;
+    font-variant: normal;
+}
+
+.font1{
+    font-weight: 300;
+
+}
+
+
+.font2{
+    font-weight: 400;
+
+}
+
+.hidden{
+    text-decoration : line-through;
+    color:grey;
 }
 
 .popup{
@@ -120,7 +152,6 @@ table tr:nth-child(odd) {
     position:absolute;
     top: 0;
     left: 0;
-    width:100%;
     height: 100%;
 }
 
@@ -140,6 +171,6 @@ table tr:nth-child(odd) {
 }
 
 .pieSvg{
-
+    shape-rendering: geometricPrecision;
 
 }

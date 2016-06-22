@@ -2,22 +2,23 @@ function drawHisto1DStack(urlJson, mydiv) {
 
     var div = d3.select('#' + mydiv);
     var svg = div.select("svg");
-    svg.margin = {top: 50, right: 50, bottom: 50, left: 50, zero:30};
+    svg.margin = {top: 50, right: 50, bottom: 50, left: 60, zero:30};
 
     //table for legend
     svg.tableWidth = 200;
 
-    var divWidth = Math.max(1.1*svg.tableWidth + svg.margin.left + svg.margin.right + 1,parseInt(div.style("width"),10)),
-      divHeight = Math.max(svg.margin.bottom + svg.margin.top + svg.margin.zero + 1,window.innerHeight*0.8);
+    var divWidth = Math.max(1.15*svg.tableWidth + svg.margin.left + svg.margin.right + 1,parseInt(div.style("width"),10)),
+      divHeight = Math.max(svg.margin.bottom + svg.margin.top + svg.margin.zero + 1,window.innerHeight);
+    
+    var table = div.select("table").style("width",svg.tableWidth + "px").style("max-height",
+        (divHeight - 2*parseFloat(getComputedStyle(div.select("h4").node()).fontSize) -60)  + "px");
 
-    var table = div.select("table").style("width",svg.tableWidth + "px").style("max-height",(divHeight-50) + "px");
 
 
+    div.style("height",divHeight + "px");
+    svg.attr("width",divWidth-1.15*svg.tableWidth).attr("height",divHeight);
 
-
-    svg.attr("width",divWidth-1.1*svg.tableWidth).attr("height",divHeight);
-
-    svg.width = divWidth-1.1*svg.tableWidth - svg.margin.left - svg.margin.right;
+    svg.width = divWidth-1.15*svg.tableWidth - svg.margin.left - svg.margin.right;
     svg.height = divHeight - svg.margin.bottom - svg.margin.top;
 
 
@@ -32,22 +33,23 @@ function drawHisto1DStack(urlJson, mydiv) {
         //test json conformity
         if(typeof json === "undefined" || json.result != "true" || error){
             console.log("incorrect url/data");
-            svg.nodata = svg.append("text").attr("transform", "translate(" + ((divWidth-1.1*svg.tableWidth)/2) + "," +
+            svg.nodata = svg.append("text").attr("transform", "translate(" + ((divWidth-1.15*svg.tableWidth)/2) + "," +
                 (divHeight/2 ) + ")")
               .classed("bckgr-txt",true)
               .text("No data")
               .style("fill", "#000");
 
             d3.select(window).on("resize." + mydiv, function(){
-                var divWidth = Math.max(1.1*svg.tableWidth,parseInt(div.style("width"),10)),
-                  divHeight = window.innerHeight*0.8;
+                var divWidth = Math.max(1.15*svg.tableWidth,parseInt(div.style("width"),10)),
+                  divHeight = window.innerHeight;
                 console.log("width " + divWidth );
 
-                svg.attr("width",divWidth-1.1*svg.tableWidth).attr("height",divHeight);
+                svg.attr("width",divWidth-1.15*svg.tableWidth).attr("height",divHeight);
 
-                div.select("table").style("max-height",(divHeight-50) + "px");
+                div.select("table").style("max-height",
+                  (divHeight - 2*parseFloat(getComputedStyle(div.select("h4").node()).fontSize) -60)  + "px");
 
-                svg.nodata.attr("transform", "translate(" + ((divWidth-1.1*svg.tableWidth)/2) + "," +
+                svg.nodata.attr("transform", "translate(" + ((divWidth-1.15*svg.tableWidth)/2) + "," +
                     (divHeight/2 ) + ")");
 
             } );
@@ -60,7 +62,12 @@ function drawHisto1DStack(urlJson, mydiv) {
         svg.legend = json[1].legend;
         console.log(json);
 
-        createHisto2DStackDouble(div,svg,json,mydiv,table)
+        if(json[2].type === "IN"){
+            createHisto2DStackDouble(div,svg,json,mydiv,table)
+        }else{
+            createHisto2DStackSimple(div,svg,json,mydiv,table)
+        }
+
 
     });
 }
@@ -95,8 +102,8 @@ function createHisto2DStackDouble(div,svg,json,mydiv,table){
 
 
 
-    var valuesIn = [];
-    var valuesOut = [];
+    svg.valuesIn = [];
+    svg.valuesOut = [];
     var xlength = json[2].tab.length;
 
     var colorMap = new Map();
@@ -128,11 +135,11 @@ function createHisto2DStackDouble(div,svg,json,mydiv,table){
 
                 if (i % 2 == 0) {
                     //json[i].tab[j].stroke = "#fff";
-                    valuesIn.push(json[i].tab[j]);
+                    svg.valuesIn.push(json[i].tab[j]);
 
                 } else {
                     //json[i].tab[j].stroke="#cccccc";
-                    valuesOut.push(json[i].tab[j]);
+                    svg.valuesOut.push(json[i].tab[j]);
 
                 }
 
@@ -160,11 +167,11 @@ function createHisto2DStackDouble(div,svg,json,mydiv,table){
 
                 if (i % 2 == 0) {
                     //json[i].tab[j].stroke = "#fff";
-                    valuesIn.push(json[i].tab[j]);
+                    svg.valuesIn.push(json[i].tab[j]);
 
                 } else {
                     //json[i].tab[j].stroke="#cccccc";
-                    valuesOut.push(json[i].tab[j]);
+                    svg.valuesOut.push(json[i].tab[j]);
 
                 }
 
@@ -206,8 +213,6 @@ function createHisto2DStackDouble(div,svg,json,mydiv,table){
         i++;
     }
 
-    sumArray.forEach(function(elem){
-    });
 
     console.log(colorMap);
 
@@ -226,8 +231,8 @@ function createHisto2DStackDouble(div,svg,json,mydiv,table){
         return b.height - a.height;
     }
 
-    valuesIn.sort(sortValues);
-    valuesOut.sort(sortValues);
+    svg.valuesIn.sort(sortValues);
+    svg.valuesOut.sort(sortValues);
 
 
     //Evaluation of the abscissa domain
@@ -236,15 +241,15 @@ function createHisto2DStackDouble(div,svg,json,mydiv,table){
     var totalSumIn = [];
     var totalSumOut = [];
 
-    var x = valuesIn[0].x;
+    var x = svg.valuesIn[0].x;
     var sum = 0;
     i=0;
 
     while(x < xlength){
 
-        while(i <  valuesIn.length && valuesIn[i].x == x){
-            valuesIn[i].y = sum;
-            sum += valuesIn[i].height;
+        while(i <  svg.valuesIn.length && svg.valuesIn[i].x == x){
+            svg.valuesIn[i].y = sum;
+            sum += svg.valuesIn[i].height;
             i++;
         }
         totalSumIn.push(sum);
@@ -252,14 +257,14 @@ function createHisto2DStackDouble(div,svg,json,mydiv,table){
         x++;
     }
 
-    x = valuesOut[0].x;
+    x = svg.valuesOut[0].x;
     i=0;
 
     while(x < xlength){
 
-        while(i <  valuesOut.length && valuesOut[i].x == x){
-            sum += valuesOut[i].height;
-            valuesOut[i].y = sum;
+        while(i <  svg.valuesOut.length && svg.valuesOut[i].x == x){
+            sum += svg.valuesOut[i].height;
+            svg.valuesOut[i].y = sum;
             i++;
         }
         totalSumOut.push(sum);
@@ -305,7 +310,7 @@ function createHisto2DStackDouble(div,svg,json,mydiv,table){
 
     var dataWidth = 0.75*(svg.x(svg.x.domain()[0] + 1) - svg.x.range()[0]);
     var selectionIn = svg.chartInput.selectAll(".data")
-      .data(valuesIn)
+      .data(svg.valuesIn)
       .enter().append("rect")
       .classed("data",true)
       .attr("x", function(d){return svg.x(d.x - 0.375);})
@@ -317,7 +322,7 @@ function createHisto2DStackDouble(div,svg,json,mydiv,table){
       .attr("stroke",function(d){return d.stroke});
 
     var selectionOut = svg.chartOutput.selectAll(".data")
-      .data(valuesOut)
+      .data(svg.valuesOut)
       .enter().append("rect")
       .classed("data",true)
       .attr("x", function(d){return svg.x(d.x- 0.375);})
@@ -354,13 +359,17 @@ function createHisto2DStackDouble(div,svg,json,mydiv,table){
         })()
     }
 
+    svg.activeItem = null;
 
     function activationElems(d){
 
-        var item = d.item;
+        if(svg.popup.pieChart !== null){
+            return;}
 
-        function testitem(d){
-            return d.item == item;
+        svg.activeItem = d.item;
+
+        function testitem(data){
+            return d.item == data.item;
 
         }
 
@@ -370,12 +379,48 @@ function createHisto2DStackDouble(div,svg,json,mydiv,table){
 
     }
 
-    function activationElemsAutoScroll(d){
+    function activationElemsAutoScroll(d) {
 
-        var item = d.item;
 
-        function testitem(d){
-            return d.item == item;
+        if(svg.popup.pieChart !== null){
+            return;}
+        svg.activeItem = d.item;
+
+
+        function testitem(data) {
+            return d.item == data.item;
+
+        }
+
+        var elem = trSelec.filter(testitem).classed("outlined", true);
+        var tableViewHeight = table.property("clientHeight");
+        //var tableScrollHeight = table.property("scrollHeight"); //not used anymore
+        var tableScrollTop = table.property("scrollTop");
+        var elemOffsetHeight = elem.property("offsetHeight");
+        var elemOffsetTop = elem.property("offsetTop");
+        var scrollEnd = (elemOffsetTop <= tableScrollTop) ? elemOffsetTop : Math.max(elemOffsetTop - tableViewHeight + elemOffsetHeight + 1, tableScrollTop);
+
+        console.log("elemoffsettop " + elemOffsetTop);
+
+
+        table.transition().ease(easeFct(3)).tween("scrolltoptween", function () {
+            return function (t) {
+                this.scrollTop = tableScrollTop * (1 - t) + t * scrollEnd;
+            };
+        });
+
+        selection.filter(testitem).each(blink);
+
+    }
+
+    function activationElemsAutoScrollPopup(d){
+
+        desactivationElems();
+        svg.activeItem = d.item;
+
+
+        function testitem(data){
+            return d.item == data.item;
 
         }
 
@@ -395,24 +440,24 @@ function createHisto2DStackDouble(div,svg,json,mydiv,table){
                 this.scrollTop = tableScrollTop * (1-t) + t*scrollEnd;
             };
         });
-
-
-        selection.filter(testitem).each(blink);
-
+            
     }
 
-    function desactivationElems(d){
+    function desactivationElems(){
+
+        if(svg.activeItem==null||svg.popup.pieChart !== null){
+        return;}
+
 
         function testitem(data){
-            return data.item == d.item;
-
+            return data.item == svg.activeItem;
         }
 
-        if(svg.popup.pieChart == null) {
-            trSelec.filter(testitem).classed("outlined", false);
-        }
+        trSelec.filter(testitem).classed("outlined", false);
 
-        selection.filter(testitem).transition().duration(0).attr("stroke",function(d){return d.stroke;}).attr("fill",colorMap.get(d.item));
+        selection.filter(testitem).transition().duration(0).attr("stroke",function(d){return d.stroke;}).attr("fill",colorMap.get(svg.activeItem));
+
+        svg.activeItem = null;
 
     }
 
@@ -465,7 +510,7 @@ function createHisto2DStackDouble(div,svg,json,mydiv,table){
     svg.ylabel = svg.axisyInput.append("text")
       .attr("class", "label")
       .attr("text-anchor", "middle")
-      .attr("dy", ".75em")
+      .attr("dy", "1em")
       .attr('y',- svg.margin.left)
       .attr("x",- svg.height/2)
       .attr("transform", "rotate(-90)")
@@ -473,7 +518,7 @@ function createHisto2DStackDouble(div,svg,json,mydiv,table){
 
     svg.side = 0.75*Math.min(svg.height,svg.width);
     svg.pieside = 1*svg.side;
-    var overlay = div.append("div").classed("overlay",true).style("display","none");
+    div.overlay = div.append("div").classed("overlay",true).style("display","none").style("width",(svg.width+svg.margin.left+svg.margin.right) + "px");
     svg.popup = div.append("div").classed("popup",true).style({"width":svg.side + "px","height":svg.side + "px","display":"none",
         "left":((svg.width-svg.side)/2 +svg.margin.left)+"px" ,"top": ((svg.height-svg.side)/2 +svg.margin.top) + "px"});
     svg.popup.pieChart = null;
@@ -484,7 +529,9 @@ function createHisto2DStackDouble(div,svg,json,mydiv,table){
 
             clearTimeout(svg.timer);   
             svg.timer = setTimeout(function(){
-                overlay.style("display",null);
+                div.overlay.style("display",null);
+                desactivationElems();
+                activationElemsAutoScrollPopup(d);
                 svg.popup.pieChart = svg.popup.append("svg").attr("width", svg.pieside).attr("height", svg.pieside).classed("pieSvg",true);
                 drawComplData("./datacompl.json",svg.popup,svg.pieside,d.height);
                 svg.popup.style("display",null);
@@ -492,12 +539,12 @@ function createHisto2DStackDouble(div,svg,json,mydiv,table){
 
         });
 
-    overlay.on("click",function(){
-            trSelec.classed("outlined",false);
-            overlay.style("display","none");
+    div.overlay.on("click",function(){
+            div.overlay.style("display","none");
             svg.popup.style("display","none");
             svg.popup.pieChart.remove();
             svg.popup.pieChart = null;
+            desactivationElems();
     });
 
     //Legend creation
@@ -519,14 +566,824 @@ function createHisto2DStackDouble(div,svg,json,mydiv,table){
     svg.newYInput = d3.scale.linear().range(svg.yInput.range()).domain(svg.yInput.domain());
 
 
-    addZoomDouble(svg,updateHisto1DStack);
+    addZoomDouble(svg,updateHisto1DStackDouble);
     d3.select(window).on("resize." + mydiv, function(){
         console.log("resize");
-        redraw(div,svg);
+        redrawHisto2DStackDouble(div,svg);
     } );
 
+    hideShowValuesDouble(svg,trSelec,selectionIn,selectionOut,xlength)
 
 
+}
+
+
+
+
+/***********************************************************************************************************/
+
+function createHisto2DStackSimple(div,svg,json,mydiv,table){
+
+
+    svg.x = d3.scale.linear()
+      .range([0, svg.width]);
+
+    svg.y = d3.scale.linear().clamp(true);
+
+    svg.svg = svg.append("svg").attr("x",svg.margin.left).attr("y",svg.margin.top).attr("width",svg.width).attr("height",svg.height);
+
+
+    //Will contain the chart itself, without the axis
+    svg.chart = svg.svg.append("g");
+
+
+
+    //Will contain the axis and the rectselec, for a better display of scaling
+    svg.frame = svg.svg.append("g");
+
+    svg.selec = svg.frame.append("rect").attr("class", "rectSelec");
+
+
+
+
+    svg.values = [];
+    var xlength = json[2].tab.length;
+
+    var colorMap = new Map();
+    var sumMap = new Map();
+    var i;
+
+    if(typeof json[2].tab[0].item === "undefined"){
+
+        //json[i].tab[j].item = json[i].name
+        //Remainder = OTHERS
+
+        for (i = 2; i < json.length; i++) {
+
+            for (var j = 0; j < xlength; j++) {
+                if (json[i].tab[j].y == 0) {
+                    continue;
+                }
+                json[i].tab[j].x = j;
+                json[i].tab[j].height = json[i].tab[j].y;
+                json[i].tab[j].item = json[i].name;
+
+                if (!sumMap.has(json[i].tab[j].item)) {
+                    sumMap.set(json[i].tab[j].item, json[i].tab[j].height);
+                } else {
+                    sumMap.set(json[i].tab[j].item, sumMap.get(json[i].tab[j].item) + json[i].tab[j].height)
+                }
+
+                json[i].tab[j].stroke = "#000000";
+
+                svg.values.push(json[i].tab[j]);
+
+            }
+        }
+
+    }else {
+
+        for (i = 2; i < json.length; i++) {
+
+            for (var j = 0; j < xlength; j++) {
+                if (json[i].tab[j].y == 0) {
+                    continue;
+                }
+                json[i].tab[j].x = j;
+                json[i].tab[j].height = json[i].tab[j].y;
+
+                if (!sumMap.has(json[i].tab[j].item)) {
+                    sumMap.set(json[i].tab[j].item, json[i].tab[j].height);
+                } else {
+                    sumMap.set(json[i].tab[j].item, sumMap.get(json[i].tab[j].item) + json[i].tab[j].height)
+                }
+
+                json[i].tab[j].stroke = "#000000";
+
+
+                svg.values.push(json[i].tab[j]);
+
+            }
+        }
+    }
+
+
+    var sumArray = [];
+
+    var f = colorEval();
+
+
+    sumMap.forEach(function(value,key){
+        sumArray.push({item:key,sum:value});
+    });
+
+    sumArray.sort(function(a,b){
+
+        if(a.item == " Remainder " || a.item=="OTHERS"){
+            return -1;
+        }
+        if(b.item == " Remainder " || b.item == "OTHERS"){
+            return 1;
+        }
+        return b.sum - a.sum;
+    });
+
+    console.log(sumArray);
+    //The most importants elements should have distinct colors.
+    i = 0;
+    if(sumArray[0].item == " Remainder " || sumArray[0].item == "OTHERS"){
+        colorMap.set(sumArray[0].item , "#f2f2f2");
+        i=1;
+    }
+
+    while(i < sumArray.length){
+        colorMap.set(sumArray[i].item,f());
+        i++;
+    }
+
+    console.log(colorMap);
+
+
+    function sortValues(a, b) {
+
+        if(a.x - b.x !=0){
+            return a.x - b.x;
+        }
+        if(a.item == " Remainder " || a.item=="OTHERS"){
+            return -1;
+        }
+        if(b.item == " Remainder " || b.item=="OTHERS"){
+            return 1;
+        }
+        return b.height - a.height;
+    }
+
+    svg.values.sort(sortValues);
+
+
+    //Evaluation of the abscissa domain
+    svg.x.domain([-0.625,xlength-0.375]);
+
+    var totalSum = [];
+
+    var x = svg.values[0].x;
+    var sum;
+    i=0;
+
+    while(x < xlength){
+        sum=0;
+        while(i <  svg.values.length && svg.values[i].x == x){
+            sum += svg.values[i].height;
+            svg.values[i].y = sum;
+            i++;
+        }
+        totalSum.push(sum);
+        x++;
+    }
+
+
+
+    var total = d3.max(totalSum);
+
+    svg.y.range([svg.height,0]);
+
+
+    //the *1.05 operation allow a little margin
+    svg.y.domain([0,total*1.05]);
+
+
+
+    var dataWidth = 0.75*(svg.x(svg.x.domain()[0] + 1) - svg.x.range()[0]);
+
+    var selection = svg.chart.selectAll(".data")
+      .data(svg.values)
+      .enter().append("rect")
+      .classed("data",true)
+      .attr("x", function(d){return svg.x(d.x- 0.375);})
+      .attr("y",function(d){
+          return svg.y(d.y);})
+      .attr("height", function(d){ return svg.y.range()[0] - svg.y(d.height);})
+      .attr("width",dataWidth)
+      .attr("fill",function(d){return colorMap.get(d.item);})
+      .attr("stroke",function(d){return d.stroke});
+
+
+
+
+    selection.append("svg:title")
+      .text(function(d){
+          return  d.item + "\n" + svg.legend[d.x%svg.legend.length].text + ", " + d.height + " " + json[0].unit;});
+
+
+
+    function blink() {
+
+        this.parentNode.appendChild(this);
+        var rect = d3.select(this);
+
+        var col1 = colorMap.get(rect.datum().item), col2 = "#ffffff",col3 = "#ff0000",col4 = rect.datum().stroke;
+        rect.attr("stroke",col3).attr("fill",col2);
+        (function doitagain() {
+            rect.transition().duration(1000)
+              .attr("stroke", col4).attr("fill",col1)
+              .transition().duration(1000)
+              .attr("stroke", col3).attr("fill",col2)
+              .each("end", doitagain);
+        })()
+    }
+
+    svg.activeItem = null;
+
+    function activationElems(d){
+
+        if(svg.popup.pieChart !== null){
+            return;}
+
+        svg.activeItem = d.item;
+
+        function testitem(data){
+            return d.item == data.item;
+
+        }
+
+        trSelec.filter(testitem).classed("outlined",true);
+
+        selection.filter(testitem).each(blink);
+
+    }
+
+    function activationElemsAutoScroll(d) {
+
+
+        if(svg.popup.pieChart !== null){
+            return;}
+        svg.activeItem = d.item;
+
+
+        function testitem(data) {
+            return d.item == data.item;
+
+        }
+
+        var elem = trSelec.filter(testitem).classed("outlined", true);
+        var tableViewHeight = table.property("clientHeight");
+        //var tableScrollHeight = table.property("scrollHeight"); //not used anymore
+        var tableScrollTop = table.property("scrollTop");
+        var elemOffsetHeight = elem.property("offsetHeight");
+        var elemOffsetTop = elem.property("offsetTop");
+        var scrollEnd = (elemOffsetTop <= tableScrollTop) ? elemOffsetTop : Math.max(elemOffsetTop - tableViewHeight + elemOffsetHeight + 1, tableScrollTop);
+
+        console.log("elemoffsettop " + elemOffsetTop);
+
+
+        table.transition().ease(easeFct(3)).tween("scrolltoptween", function () {
+            return function (t) {
+                this.scrollTop = tableScrollTop * (1 - t) + t * scrollEnd;
+            };
+        });
+
+        selection.filter(testitem).each(blink);
+
+    }
+
+    function activationElemsAutoScrollPopup(d){
+
+        desactivationElems();
+        svg.activeItem = d.item;
+
+
+        function testitem(data){
+            return d.item == data.item;
+
+        }
+
+        var elem = trSelec.filter(testitem).classed("outlined",true);
+        var tableViewHeight = table.property("clientHeight");
+        //var tableScrollHeight = table.property("scrollHeight"); //not used anymore
+        var tableScrollTop = table.property("scrollTop");
+        var elemOffsetHeight = elem.property("offsetHeight");
+        var elemOffsetTop = elem.property("offsetTop");
+        var scrollEnd = (elemOffsetTop <= tableScrollTop) ? elemOffsetTop : Math.max(elemOffsetTop -tableViewHeight + elemOffsetHeight + 1,tableScrollTop);
+
+        console.log("elemoffsettop " + elemOffsetTop);
+
+
+        table.transition().ease(easeFct(3)).tween("scrolltoptween", function(){
+            return function(t){
+                this.scrollTop = tableScrollTop * (1-t) + t*scrollEnd;
+            };
+        });
+
+    }
+
+    function desactivationElems(){
+
+        if(svg.activeItem==null||svg.popup.pieChart !== null){
+            return;}
+
+
+        function testitem(data){
+            return data.item == svg.activeItem;
+        }
+
+        trSelec.filter(testitem).classed("outlined", false);
+
+        selection.filter(testitem).transition().duration(0).attr("stroke",function(d){return d.stroke;}).attr("fill",colorMap.get(svg.activeItem));
+
+        svg.activeItem = null;
+
+    }
+
+    selection.on("mouseover", activationElemsAutoScroll).on("mouseout",desactivationElems);
+
+
+
+
+    svg.axisx = svg.append("g")
+      .attr("class", "axis")
+      .attr('transform', 'translate(' + [svg.margin.left, svg.height+svg.margin.top] +  ")");
+
+    svg.axisx.call(d3.svg.axis()
+      .scale(svg.x)
+      .orient("bottom"));
+
+    svg.axisx.selectAll(".tick").select("text").text(function(){
+        var text = d3.select(this).text();
+        if (Math.floor(+text) != +text){
+            d3.select(this).node().parentNode().remove();
+        }else{
+            return svg.legend[+text%svg.legend.length].text;
+        }
+    });
+
+    svg.axisy = svg.append("g").attr('transform', 'translate(' + [svg.margin.left, svg.margin.top ] + ')')
+      .attr("class", "axis");
+    svg.axisy.call(d3.svg.axis()
+      .scale(svg.y)
+      .orient("left")
+    );
+
+
+    //      Label of the y axis
+    svg.ylabel = svg.axisy.append("text")
+      .attr("class", "label")
+      .attr("text-anchor", "middle")
+      .attr("dy", "1em")
+      .attr('y',- svg.margin.left)
+      .attr("x",- svg.height/2)
+      .attr("transform", "rotate(-90)")
+      .text(json[0].unit);
+
+    svg.side = 0.75*Math.min(svg.height,svg.width);
+    svg.pieside = 1*svg.side;
+    div.overlay = div.append("div").classed("overlay",true).style("display","none").style("width",(svg.width+svg.margin.left+svg.margin.right) + "px");
+    svg.popup = div.append("div").classed("popup",true).style({"width":svg.side + "px","height":svg.side + "px","display":"none",
+        "left":((svg.width-svg.side)/2 +svg.margin.left)+"px" ,"top": ((svg.height-svg.side)/2 +svg.margin.top) + "px"});
+    svg.popup.pieChart = null;
+
+    svg.timer = null;
+    selection
+      .on("click",function(d){
+
+          clearTimeout(svg.timer);
+          svg.timer = setTimeout(function(){
+              div.overlay.style("display",null);
+              desactivationElems();
+              activationElemsAutoScrollPopup(d);
+              svg.popup.pieChart = svg.popup.append("svg").attr("width", svg.pieside).attr("height", svg.pieside).classed("pieSvg",true);
+              drawComplData("./datacompl.json",svg.popup,svg.pieside,d.height);
+              svg.popup.style("display",null);
+          },500);
+
+      });
+
+    div.overlay.on("click",function(){
+        div.overlay.style("display","none");
+        svg.popup.style("display","none");
+        svg.popup.pieChart.remove();
+        svg.popup.pieChart = null;
+        desactivationElems();
+    });
+
+    //Legend creation
+
+    var trSelec;
+
+    trSelec = table.selectAll("tr").data(sumArray).enter().append("tr");
+    trSelec.append("td").classed("color",true).append("div").classed("lgd",true).style("background-color", function(d){return colorMap.get(d.item);});
+    trSelec.append("td").classed("item",true).text(function(d){return d.item;});
+
+    trSelec.on("mouseover",activationElems).on("mouseout",desactivationElems);
+
+
+    //zoom
+
+
+    svg.newX = d3.scale.linear().range(svg.x.range()).domain(svg.x.domain());
+    svg.newY = d3.scale.linear().range(svg.y.range()).domain(svg.y.domain());
+
+
+    addZoomSimple(svg,updateHisto1DStackSimple);
+
+    d3.select(window).on("resize." + mydiv, function(){
+        console.log("resize");
+        redrawHisto2DStackSimple(div,svg);
+    } );
+
+    hideShowValuesSimple(svg,trSelec,selection,xlength);
+
+
+
+
+
+}
+
+/***********************************************************************************************************/
+
+function hideShowValuesSimple(svg,trSelec,selection,xlength){
+
+    var hiddenValues = [];
+    var newValues = JSON.parse(JSON.stringify(svg.values));
+    var valuesTrans = JSON.parse(JSON.stringify(svg.values));
+    selection.data(valuesTrans);
+
+    console.log(newValues);
+
+
+    trSelec.on("click",function(d){
+        var totalSum = [];
+
+        var x = svg.values[0].x;
+        var sum;
+        var i=0;
+
+        if(svg.popup.pieChart !==null){
+            return;
+        }
+
+        var index = hiddenValues.indexOf(d.item);
+
+        if( index === -1){
+            //Hide the data
+             hiddenValues.push(d.item);
+             d3.select(this).classed("hidden",true);
+
+
+
+
+            while(x < xlength){
+                sum=0;
+                while(i <  newValues.length && newValues[i].x == x){
+                    if(newValues[i].item === d.item){
+                        newValues[i].height = 0;
+                    }
+                    sum += newValues[i].height;
+                    newValues[i].y = sum;
+                    i++;
+                }
+                totalSum.push(sum);
+                x++;
+            }
+
+
+        }else{
+            //Show the data
+             hiddenValues.splice(index,1);
+             d3.select(this).classed("hidden",false);
+
+
+            while(x < xlength){
+                sum=0;
+                while(i <  newValues.length && newValues[i].x == x){
+                    if(newValues[i].item === d.item){
+                        newValues[i].height = svg.values[i].height;
+                    }
+                    sum += newValues[i].height;
+                    newValues[i].y = sum;
+                    i++;
+                }
+                totalSum.push(sum);
+                x++;
+            }
+
+
+        }
+
+        var valuesStart = JSON.parse(JSON.stringify(valuesTrans));
+        var newTotal = Math.max(0.000000001,d3.max(totalSum));
+        var oldTotal = svg.y.domain()[1]/1.05;
+
+
+
+        svg.transition("hideshow").duration(1000).tween("",function(){
+
+            var t0,totalTrans;
+
+            return function(t){
+
+                t=Math.min(1,Math.max(0,t));
+                t0 = (1-t);
+
+                valuesTrans.forEach(function(elem,i){
+                    elem.y = t0*valuesStart[i].y + t*newValues[i].y;
+                    elem.height = t0*valuesStart[i].height + t*newValues[i].height;
+                });
+
+                totalTrans = oldTotal* t0 + newTotal*t;
+                var actTranslate1 = -svg.translate[1]/(svg.scaley*svg.scale);
+                svg.y.domain([0,totalTrans*1.05]);
+                svg.newY.domain([svg.y.invert(actTranslate1 + svg.height/(svg.scale*svg.scaley)), svg.y.invert(actTranslate1) ]);
+                updateHisto1DStackSimple(svg);
+
+            }
+        });
+
+
+
+
+    });
+
+
+}
+
+
+
+/***********************************************************************************************************/
+
+function hideShowValuesDouble(svg,trSelec,selectionIn,selectionOut,xlength){
+    var duration = 5000;
+    var hiddenItems = [];
+    var newValuesIn = JSON.parse(JSON.stringify(svg.valuesIn));
+    var newValuesOut = JSON.parse(JSON.stringify(svg.valuesOut));
+    var valuesInTrans = JSON.parse(JSON.stringify(svg.valuesIn));
+    var valuesOutTrans = JSON.parse(JSON.stringify(svg.valuesOut));
+    selectionIn.data(valuesInTrans);
+    selectionOut.data(valuesOutTrans);
+
+    trSelec.on("click",function(d){
+        var totalSumIn = [];
+        var totalSumOut = [];
+
+        var x;
+        var sum;
+        var i;
+
+        if(svg.popup.pieChart !==null){
+            return;
+        }
+
+        var index = hiddenItems.indexOf(d.item);
+
+        if( index === -1){
+            //Hide the data
+            hiddenItems.push(d.item);
+            d3.select(this).classed("hidden",true);
+
+
+
+            x=svg.valuesIn[0].x;
+            i=0;
+
+            while(x < xlength){
+                sum=0;
+                while(i <  newValuesIn.length && newValuesIn[i].x == x){
+                    if(newValuesIn[i].item === d.item){
+                        newValuesIn[i].height = 0;
+                    }
+                    newValuesIn[i].y = sum;
+                    sum += newValuesIn[i].height;
+                    i++;
+                }
+                totalSumIn.push(sum);
+                x++;
+            }
+
+            x = svg.valuesOut[0].x;
+            i=0;
+
+            while(x < xlength){
+                sum=0;
+
+                while(i <  newValuesOut.length && newValuesOut[i].x == x){
+                    if(newValuesOut[i].item === d.item){
+                        newValuesOut[i].height = 0;
+                    }
+                    sum += newValuesOut[i].height;
+                    newValuesOut[i].y = sum;
+                    i++;
+                }
+                totalSumOut.push(sum);
+                x++;
+            }
+
+
+        }else{
+            //Show the data
+            hiddenItems.splice(index,1);
+            d3.select(this).classed("hidden",false);
+
+
+            x=svg.valuesIn[0].x;
+            i=0;
+
+            while(x < xlength){
+                sum=0;
+                while(i <  newValuesIn.length && newValuesIn[i].x == x){
+                    if(newValuesIn[i].item === d.item){
+                        newValuesIn[i].height = svg.valuesIn[i].height;
+                    }
+                    newValuesIn[i].y = sum;
+                    sum += newValuesIn[i].height;
+                    i++;
+                }
+                totalSumIn.push(sum);
+                x++;
+            }
+
+            x = svg.valuesOut[0].x;
+            i=0;
+
+            while(x < xlength){
+                sum=0;
+
+                while(i <  newValuesOut.length && newValuesOut[i].x == x){
+                    if(newValuesOut[i].item === d.item){
+                        newValuesOut[i].height = svg.valuesOut[i].height;
+                    }
+                    sum += newValuesOut[i].height;
+                    newValuesOut[i].y = sum;
+                    i++;
+                }
+                totalSumOut.push(sum);
+                x++;
+            }
+
+
+        }
+
+
+
+        var newTotalIn = Math.max(0.000000001,d3.max(totalSumIn));
+        var newTotalOut = Math.max(0.000000001,d3.max(totalSumOut));
+
+        var oldTotalIn = svg.yInput.domain()[1]/1.1;
+        var oldTotalOut = svg.yOutput.domain()[1]/1.1;
+
+        var valuesInStart = JSON.parse(JSON.stringify(valuesInTrans));
+        var valuesOutStart = JSON.parse(JSON.stringify(valuesOutTrans));
+
+        svg.transition("hideshow").duration(duration).tween("",function(){
+            var t0,totalInTrans, totalOutTrans;
+
+            return function(t){
+
+                t=Math.min(1,Math.max(0,t));
+                t0 = (1-t);
+
+                valuesInTrans.forEach(function(elem,i){
+                    elem.y = t0*valuesInStart[i].y + t*newValuesIn[i].y;
+                    elem.height = t0*valuesInStart[i].height + t*newValuesIn[i].height;
+                });
+
+                valuesOutTrans.forEach(function(elem,i){
+                    elem.y = t0*valuesOutStart[i].y + t*newValuesOut[i].y;
+                    elem.height = t0*valuesOutStart[i].height + t*newValuesOut[i].height;
+                });
+
+
+                totalInTrans = oldTotalIn* t0 + newTotalIn*t;
+                totalOutTrans = oldTotalOut*t0 + newTotalOut*t;
+                var actTranslate1 = -svg.translate[1]/(svg.scaley*svg.scale);
+                svg.heightOutput = (svg.height - svg.margin.zero)*totalOutTrans/(totalInTrans+totalOutTrans);
+                svg.yInput.range([svg.heightOutput+svg.margin.zero,svg.height]);
+                svg.yOutput.range([svg.heightOutput,0]);
+                svg.yInput.domain([0,totalInTrans*1.1]);
+                svg.yOutput.domain([0,totalOutTrans*1.1]);
+                svg.newYOutput.range([Math.min(svg.height,Math.max(0,svg.heightOutput*svg.scale*svg.scaley+svg.translate[1])),0]);
+                svg.newYInput.range([Math.min(svg.height,Math.max(0,svg.heightOutput*svg.scale*svg.scaley+svg.translate[1] + svg.margin.zero)),svg.height]);
+                svg.newYOutput.domain([svg.yOutput.invert(svg.height/(svg.scale*svg.scaley) + actTranslate1),
+                    svg.yOutput.invert(actTranslate1)]);
+
+                svg.newYInput.domain([svg.yInput.invert(actTranslate1  + (1-1/(svg.scale*svg.scaley))*svg.margin.zero),
+                    svg.yInput.invert(actTranslate1 + (1-1/(svg.scale*svg.scaley))*svg.margin.zero + svg.height/(svg.scale*svg.scaley))]);
+
+
+                updateHisto1DStackDouble(svg);
+
+            }
+
+
+
+        });
+
+
+
+
+        /*
+                svg.heightOutput = (svg.height - svg.margin.zero)*totalOut/(totalIn+totalOut);
+
+                svg.yInput.range([svg.heightOutput+svg.margin.zero,svg.height]);
+                svg.yOutput.range([svg.heightOutput,0]);
+
+
+                //the *1.1 operation allow a little margin
+                svg.yInput.domain([0,totalIn*1.1]);
+                svg.yOutput.domain([0,totalOut*1.1]);*/
+/*
+
+        selectionIn.transition("hideshow").duration(duration).tween("",function(data,i){
+            var rect =d3.select(this);
+            var ystart = data.y;
+            var heightstart = data.height;
+            var elem = JSON.parse(JSON.stringify(newValuesIn[i]));
+            var yend = elem.y;
+            var heightend = elem.height;
+
+            return function(t){
+                t=Math.min(1,Math.max(0,t));
+
+                elem.y = (1-t)*ystart + t*yend;
+                elem.height = (1-t)*heightstart + t*heightend;
+                rect.datum(elem)
+                  .attr("y", function(d){return svg.newYInput(d.y);})
+                  .attr("height", function(d){return svg.newYInput(d.height) - svg.newYInput(svg.yInput.domain()[0]);});
+            }
+
+        });
+
+        selectionOut.transition("hideshow").duration(duration).tween("",function(data,i){
+            var rect =d3.select(this);
+            var ystart = data.y;
+            var heightstart = data.height;
+            var elem = JSON.parse(JSON.stringify(newValuesOut[i]));
+            var yend = elem.y;
+            var heightend = elem.height;
+
+            return function(t){
+                t=Math.min(1,Math.max(0,t));
+
+                elem.y = (1-t)*ystart + t*yend;
+                elem.height = (1-t)*heightstart + t*heightend;
+                rect.datum(elem)
+                  .attr("y", function(d){return svg.newYOutput(d.y);})
+                  .attr("height", function(d){return svg.newYOutput(svg.yOutput.domain()[0]) - svg.newYOutput(d.height);});
+            }
+
+        })*/
+
+
+
+
+    });
+
+
+}
+
+
+
+
+/***********************************************************************************************************/
+
+
+
+function updateHisto1DStackSimple(svg){
+    /*
+
+     svg.chartOutput.attr("transform","matrix(" + (svg.scalex*svg.scale) + ", 0, 0, " + (svg.scaley*svg.scale) + ", " + svg.translate[0] + "," + svg.translate[1] + ")" );
+
+     svg.chartInput.attr("transform","matrix(" + (svg.scalex*svg.scale) + ", 0, 0, " + (svg.scaley*svg.scale) + ", " + svg.translate[0] + "," + (svg.translate[1] - (svg.scaley*svg.scale-1)*svg.margin.zero) + ")" );
+     */
+
+
+    var newydom0 = svg.newY(svg.y.domain()[0]);
+    var dataWidth = 0.75*(svg.newX(svg.newX.domain()[0] + 1) - svg.newX.range()[0]);
+
+
+
+
+    svg.chart.selectAll(".data")
+      .attr("x",function(d){return svg.newX(d.x - 0.375);})
+      .attr("y", function(d){return svg.newY(d.y);})
+      .attr("height", function(d){return newydom0 - svg.newY(d.height);})
+      .attr("width", dataWidth);
+
+
+    svg.axisx.call(d3.svg.axis()
+      .scale(svg.newX)
+      .orient("bottom"));
+
+    svg.axisx.selectAll(".tick").select("text").text(function(){
+        var text = d3.select(this).text();
+        if (Math.floor(+text) != +text){
+            d3.select(this).node().parentNode.remove();
+        }else{
+            return svg.legend[+text%svg.legend.length].text;
+        }
+    });
+
+    svg.axisy.call(d3.svg.axis()
+      .scale(svg.newY)
+      .orient("left"));
 
 }
 
@@ -536,7 +1393,7 @@ function createHisto2DStackDouble(div,svg,json,mydiv,table){
 
 
 
-function updateHisto1DStack(svg){
+function updateHisto1DStackDouble(svg){
 /*
 
     svg.chartOutput.attr("transform","matrix(" + (svg.scalex*svg.scale) + ", 0, 0, " + (svg.scaley*svg.scale) + ", " + svg.translate[0] + "," + svg.translate[1] + ")" );
@@ -897,20 +1754,22 @@ function addZoomDouble(svg,updateFunction){
 }
 /************************************************************************************************************/
 
-function redraw(div,svg){
+function redrawHisto2DStackDouble(div,svg){
 
-    var divWidth = Math.max(1.1*svg.tableWidth + svg.margin.left + svg.margin.right + 1,parseInt(div.style("width"),10)),
-      divHeight = Math.max(svg.margin.bottom + svg.margin.top + svg.margin.zero + 1,window.innerHeight*0.8);
+    var divWidth = Math.max(1.15*svg.tableWidth + svg.margin.left + svg.margin.right + 1,parseInt(div.style("width"),10)),
+      divHeight = Math.max(svg.margin.bottom + svg.margin.top + svg.margin.zero + 1,window.innerHeight);
     console.log("width " + divWidth );
 
     var oldsvgheight = svg.height;
     var oldsvgwidth = svg.width;
+    div.style("height",divHeight + "px");
 
-    svg.attr("width",divWidth-1.1*svg.tableWidth).attr("height",divHeight);
+    svg.attr("width",divWidth-1.15*svg.tableWidth).attr("height",divHeight);
 
-    svg.width = divWidth-1.1*svg.tableWidth - svg.margin.left - svg.margin.right;
+    svg.width = divWidth-1.15*svg.tableWidth - svg.margin.left - svg.margin.right;
     svg.height = divHeight - svg.margin.bottom - svg.margin.top;
-    div.select("table").style("max-height",(divHeight-50) + "px");
+    div.select("table").style("max-height",
+      (divHeight - 2*parseFloat(getComputedStyle(div.select("h4").node()).fontSize) -60)  + "px");
 
     var oldheightoutput = svg.heightOutput;
 
@@ -973,9 +1832,9 @@ function redraw(div,svg){
     svg.zoom.translate(svg.translate);
     console.log("redraw translate1 " + svg.translate[1]);
 
-    updateHisto1DStack(svg);
+    updateHisto1DStackDouble(svg);
 
-
+    div.overlay.style("width",(svg.width+svg.margin.left + svg.margin.right) + "px");
     svg.side = 0.75*Math.min(svg.height,svg.width);
     svg.pieside = 1*svg.side;
 
@@ -1000,6 +1859,97 @@ function redraw(div,svg){
               var midAngle = (d.endAngle + d.startAngle)/2;
               var dist = svg.popup.outerRad * 0.8;
               return "translate(" + (Math.sin(midAngle)*dist) + "," +(-Math.cos(midAngle)*dist) +")";});
+
+        svg.popup.dist = svg.popup.outerRad * 0.8;
+        svg.popup.distTranslTemp = svg.popup.outerRad/4;
+        svg.popup.distTransl = svg.popup.outerRad/10;
+
+
+
+    }
+
+
+}
+
+/************************************************************************************************************/
+
+function redrawHisto2DStackSimple(div,svg){
+
+    var divWidth = Math.max(1.15*svg.tableWidth + svg.margin.left + svg.margin.right + 1,parseInt(div.style("width"),10)),
+      divHeight = Math.max(svg.margin.bottom + svg.margin.top + svg.margin.zero + 1,window.innerHeight);
+    console.log("width " + divWidth );
+
+    var oldsvgheight = svg.height;
+    var oldsvgwidth = svg.width;
+    div.style("height",divHeight + "px");
+
+    svg.attr("width",divWidth-1.15*svg.tableWidth).attr("height",divHeight);
+
+    svg.width = divWidth-1.15*svg.tableWidth - svg.margin.left - svg.margin.right;
+    svg.height = divHeight - svg.margin.bottom - svg.margin.top;
+    div.select("table").style("max-height",
+      (divHeight - 2*parseFloat(getComputedStyle(div.select("h4").node()).fontSize) -60)  + "px");
+
+
+    var ratiox = svg.width/oldsvgwidth;
+    var ratioy = svg.height/oldsvgheight;
+
+    svg.x.range([0, svg.width]);
+
+    svg.y.range([svg.height,0]);
+
+    svg.svg.attr("width",svg.width).attr("height",svg.height);
+
+    svg.ylabel.attr("x",- svg.height/2).attr('y',- svg.margin.left);
+
+    svg.frame.select(".rectOverlay").attr("height",svg.height);
+
+
+    svg.translate[1] = svg.translate[1]*ratioy;
+    svg.translate[0] = svg.translate[0]*ratiox;
+
+    var scaleytot = svg.scale*svg.scaley;
+    var scalextot = svg.scale*svg.scalex;
+
+    svg.scale = Math.max(scalextot,scaleytot);
+    svg.scalex = scalextot/svg.scale;
+    svg.scaley = scaleytot/svg.scale;
+
+    svg.zoom.scale(svg.scale);
+
+
+    svg.newX.range([0,svg.width]);
+    svg.newY.range([svg.height,0]);
+    svg.zoom.translate(svg.translate);
+    svg.axisx.attr('transform', 'translate(' + [svg.margin.left, svg.height+svg.margin.top] +  ")");
+
+    updateHisto1DStackSimple(svg);
+
+    div.overlay.style("width",(svg.width+svg.margin.left + svg.margin.right) + "px");
+    svg.side = 0.75*Math.min(svg.height,svg.width);
+    svg.pieside = 1*svg.side;
+
+    svg.popup.style({"width":svg.side + "px","height":svg.side + "px",
+        "left":((svg.width-svg.side)/2 +svg.margin.left)+"px" ,"top": ((svg.height-svg.side)/2 +svg.margin.top) + "px"});
+
+    if(svg.popup.pieChart != null){
+        svg.popup.pieChart.attr("width", svg.pieside).attr("height", svg.pieside);
+        var chartside = 0.75*svg.pieside;
+        svg.popup.innerRad = 0;
+        svg.popup.outerRad = chartside/2;
+        svg.popup.g.attr("transform","translate(" + (svg.pieside/2) + "," + (svg.pieside/2) + ")");
+
+        var arc = d3.svg.arc()
+          .innerRadius(svg.popup.innerRad)
+          .outerRadius(svg.popup.outerRad)
+          .startAngle(function(d){return d.startAngle})
+          .endAngle(function(d){return d.endAngle});
+
+        svg.popup.pieParts.attr("d",arc);
+        svg.popup.pieText.attr("transform",function(d){
+            var midAngle = (d.endAngle + d.startAngle)/2;
+            var dist = svg.popup.outerRad * 0.8;
+            return "translate(" + (Math.sin(midAngle)*dist) + "," +(-Math.cos(midAngle)*dist) +")";});
 
         svg.popup.dist = svg.popup.outerRad * 0.8;
         svg.popup.distTranslTemp = svg.popup.outerRad/4;
@@ -1159,7 +2109,7 @@ function drawComplData(urlJson,popup,pieside,total){
 
 function bytesConvert(nbBytes){
 
-    var exp = Math.floor(Math.log(nbBytes)/Math.log(1024));
+    var exp = Math.min(8,Math.max(0,Math.floor(Math.log(nbBytes)/Math.log(1024))));
 
     var value = (nbBytes/Math.pow(1024,exp)).toFixed(1);
 
@@ -1169,6 +2119,7 @@ function bytesConvert(nbBytes){
 
     switch (exp){
 
+        default:
         case 0:
             return value + " B";
         case 1 :
@@ -1185,7 +2136,6 @@ function bytesConvert(nbBytes){
             return value + " EB";
         case 7 :
             return value + " ZB";
-        default:
         case 8 :
             return value + " YB";
     }
@@ -1358,6 +2308,274 @@ function easeFct(exp){
 
 
 
+/*****************************************************************************
+
+ To be functional, the method addZoom has several requirements:
+
+ -svg.svg refers to an svg element that contains all the chart elements (and possibly more),
+ addZoom will listen to it.
+
+ -svg.frame is used to capture the position of the mouse in the chart
+ viewport without offset, if the transform translate/scale way is implemented,
+ svg.frame should refers to a g element superposed on the g containing the chart
+ itself.
+
+ -svg.y & svg.x, the initial scales used for drawing the chart.
+
+ Some other elements will be implemented with standard parameters unless
+ they already exist.
+
+ svg.newX and svg.newY, the scales about to define the current altered
+ view, implemented by default with clamping behavior enabled.
+
+ svg.selec, the selection rectangle. It may be interesting
+ to decide where it should be placed priorily, if you use the css transform
+ function for example.
+
+
+ Should work whichever the way scaling and translating are handled.
+
+ *****************************************************************************/
+
+function addZoomSimple(svg,updateFunction){
+
+    if(svg.frame == undefined){
+        svg.frame=svg.chart;
+    }
+
+    if(svg.svg == undefined){
+        svg.svg=svg;
+    }
+
+    //Scales to update the current view (if not already implemented for specific reasons)
+    if(svg.newX == undefined){
+        svg.newX = d3.scale.linear().range(svg.x.range()).clamp(true).domain(svg.x.domain());
+    }
+    if(svg.newY == undefined) {
+        svg.newY = d3.scale.linear().range(svg.y.range()).clamp(true).domain(svg.y.domain());
+    }
+
+    //Selection rectangle for zooming (if not already implemented for better display control)
+    if(svg.selec == undefined){
+        svg.selec = svg.chart.append("rect").attr("class", "rectSelec");
+    }
+
+
+
+    //to stop triggering animations during rectselec
+    var rectOverlay = svg.frame.append("rect").attr("x",0).attr("y",0)
+      .attr("height",svg.height).attr("width",0).attr("fill-opacity",0).classed("rectOverlay",true);
+
+
+    var startCoord = [NaN,NaN];
+    var mouseCoord = [NaN,NaN];
+
+
+    svg.scale = 1;
+    svg.scalex = 1;
+    svg.scaley = 1;
+
+    //coordinates within the x&y ranges frames, points towards the top left corner of the actual view
+    //workaround for the zoom.translate([0,0]) which doesn't work as intended.
+    svg.translate = [0,0];
+    var lastTranslate = [0,0];
+
+    //Vector pointing towards the top left corner of the current view in the x&y ranges frame
+    //Calculated from svg.translate
+    var actTranslate = [0,0];
+
+
+    svg.zoom = d3.behavior.zoom().scaleExtent([1, Infinity]).on("zoom", function () {
+
+
+          if(isNaN(startCoord[0])){
+
+              var e = d3.event;
+
+              if(e.scale == svg.scale){
+                  //case: translation
+
+                  //Avoid some "false" executions
+                  if(e.scale != 1){
+                      svg.style("cursor", "move");
+
+                  }
+
+                  console.log("e.translate " + e.translate);
+
+
+                  //actualization of the translation vector (translate) within the x&y ranges frames
+                  svg.translate[0] = Math.min(0, Math.max(e.translate[0],svg.width - e.scale*svg.scalex*svg.width ));
+                  svg.translate[1] = Math.min(0, Math.max(e.translate[1],svg.height - e.scale*svg.scaley*svg.height ));
+
+
+              }else{
+
+                  //case: zoom
+                  var calcCoord =[];
+
+                  //Retrieve the cursor coordinates. Quick dirty fix to accept double click while trying to minimize side effects.
+                  calcCoord[0] = -svg.margin.left-(e.translate[0] -lastTranslate[0]*e.scale/svg.scale)/(e.scale/svg.scale -1);
+                  calcCoord[1] = -svg.margin.top-(e.translate[1] -lastTranslate[1]*e.scale/svg.scale)/(e.scale/svg.scale -1);
+                  lastTranslate = e.translate;
+
+                  var lastScalex = svg.scalex;
+                  var lastScaley = svg.scaley;
+
+
+                  //Actualization of the local scales
+                  svg.scalex = Math.max(1/e.scale, svg.scalex);
+                  svg.scaley = Math.max(1/e.scale, svg.scaley);
+
+                  //Evaluation of the scale changes by axis
+                  var xrel = (svg.scalex * e.scale)/(svg.scale * lastScalex);
+                  var yrel = (svg.scaley * e.scale)/(svg.scale * lastScaley);
+
+
+
+                  //actualization of the translation vector with the scale change
+                  svg.translate[0]*= xrel;
+                  svg.translate[1]*= yrel;
+
+                  //actualization of the translation vector (translate) to the top left corner of our view within the standard x&y.range() frame
+                  //If possible, the absolute location pointed by the cursor stay the same
+                  //Since zoom.translate(translate) doesn't work immediately but at the end of all consecutive zoom actions,
+                  //we can't rely on d3.event.translate for smooth zooming and have to separate zoom & translation
+                  svg.translate[0] = Math.min(0, Math.max(svg.translate[0] - calcCoord[0]*(xrel - 1),svg.width - e.scale*svg.scalex*svg.width ));
+                  svg.translate[1] = Math.min(0, Math.max(svg.translate[1] - calcCoord[1]*(yrel - 1),svg.height- e.scale*svg.scaley*svg.height ));
+
+
+                  svg.scale = e.scale;
+
+
+                  console.log(" lastScalex " + lastScalex + " scalex " + svg.scalex + " lastScaley " + lastScaley + " scaley " + svg.scaley + " xrel " + xrel + " yrel " + yrel);
+              }
+
+              svg.zoom.translate(svg.translate);
+
+              actTranslate[0] = -svg.translate[0]/(svg.scalex*e.scale);
+              actTranslate[1] = -svg.translate[1]/(svg.scaley*e.scale);
+
+
+
+              //actualization of the current (newX&Y) scales domains
+              svg.newX.domain([ svg.x.invert(actTranslate[0]), svg.x.invert(actTranslate[0] + svg.width/(e.scale*svg.scalex)) ]);
+              svg.newY.domain([ svg.y.invert(actTranslate[1] + svg.height/(e.scale*svg.scaley)), svg.y.invert(actTranslate[1]) ]);
+
+              updateFunction(svg);
+
+
+
+          } else {
+
+              mouseCoord = d3.mouse(svg.frame.node());
+
+              //Drawing of the selection rect
+              console.log("carré mousecoord " + mouseCoord + " start " + startCoord );
+
+              mouseCoord[0] = Math.min(Math.max(mouseCoord[0],svg.x.range()[0]),svg.x.range()[1]);
+              mouseCoord[1] = Math.min(Math.max(mouseCoord[1],svg.y.range()[1]),svg.y.range()[0]);
+
+              svg.selec.attr("x", Math.min(mouseCoord[0],startCoord[0]))
+                .attr("y", Math.min(mouseCoord[1],startCoord[1]))
+                .attr("width",  Math.abs(mouseCoord[0] - startCoord[0]))
+                .attr("height", Math.abs(mouseCoord[1] - startCoord[1]));
+
+
+
+          }
+
+
+      })
+
+      .on("zoomstart",function () {
+          clearTimeout(svg.timer);
+          console.log("zoomstart");
+          if(isShiftKeyDown){
+              console.log("key is down start");
+              rectOverlay.attr("width",svg.width);
+              startCoord = d3.mouse(svg.frame.node());
+              startCoord[0] = Math.min(Math.max(startCoord[0],svg.x.range()[0]),svg.x.range()[1]);
+              startCoord[1] = Math.min(Math.max(startCoord[1],svg.y.range()[1]),svg.y.range()[0]);
+
+              svg.style("cursor","crosshair");
+          }
+
+      })
+      .on("zoomend", function () {
+          console.log("zoomend");
+
+          if(!isNaN(startCoord[0]) && !isNaN(mouseCoord[0])){
+
+              rectOverlay.attr("width",0);
+
+
+              svg.selec.attr("width",  0)
+                .attr("height", 0);
+
+
+              var sqwidth = Math.abs(mouseCoord[0] - startCoord[0]);
+              var sqheight = Math.abs(mouseCoord[1] - startCoord[1]);
+
+              if(sqwidth != 0 && sqheight != 0){
+
+                  var lastScale = svg.scale;
+                  var lastScalex = svg.scalex;
+                  var lastScaley = svg.scaley;
+
+                  //Top left corner coordinates of the selection rectangle
+                  var xmin = Math.min(mouseCoord[0],startCoord[0]);
+                  var ymin = Math.min(mouseCoord[1],startCoord[1]);
+
+                  //Repercussion on the translate vector
+                  svg.translate[0] = svg.translate[0] - xmin;
+                  svg.translate[1] = svg.translate[1] - ymin;
+
+                  //Evaluation of the total scale change from the beginning, by axis.
+                  svg.scalex = svg.width*svg.scale*svg.scalex/sqwidth;
+                  svg.scaley = svg.height*svg.scale*svg.scaley/sqheight;
+
+                  //Evaluation of the global scale
+                  svg.scale = Math.max(svg.scalex,svg.scaley);
+
+                  //Evaluation of the local scale change (with 0<svg.scalen<=1 &&
+                  // total scale change for n axis == svg.scalen*svg.scale >=1)
+                  svg.scalex = svg.scalex/svg.scale;
+                  svg.scaley = svg.scaley/svg.scale;
+
+                  //Evaluation of the ratio by axis between the new & old scales
+                  var xrel = (svg.scalex * svg.scale)/(lastScale * lastScalex);
+                  var yrel = (svg.scaley * svg.scale)/(lastScale * lastScaley);
+
+                  //Actualization of the translate vector
+                  svg.translate[0]*= xrel;
+                  svg.translate[1]*= yrel;
+
+                  //actualization of the current (newX&Y) scales domains
+                  svg.newX.domain([ svg.newX.invert(xmin), svg.newX.invert(xmin + sqwidth)]);
+                  svg.newY.domain([ svg.newY.invert(ymin + sqheight),svg.newY.invert(ymin) ]);
+
+                  updateFunction(svg);
+              }
+
+              //update of the zoom behavior
+              svg.zoom.scale(svg.scale);
+              svg.zoom.translate(svg.translate);
+
+
+          }
+
+          startCoord = [NaN,NaN];
+          mouseCoord = [NaN,NaN];
+          lastTranslate = svg.translate;
+          svg.style("cursor","auto");
+
+
+      });
+
+    svg.call(svg.zoom);
+}
+
 /************************************************************************************************************/
 
 
@@ -1379,5 +2597,8 @@ d3.select(window).on("keydown",function (){
     });
 
 
-//drawHisto1DStack("/dynamic/netTop10NbExtHosts.json?dd=2016-06-07%2011%3A44&df=2016-06-16%2011%3A44&dh=2", "Graph");
-drawHisto1DStack("./data.json", "Graph");
+//drawHisto1DStack("/dynamic/netNbLocalHosts.json?accurate=true&dd=2016-06-07%2011%3A44&df=2016-06-16%2011%3A44&dh=2", "Graph");
+drawHisto1DStack("/dynamic/netTop10appTraffic.json?service=ext&dd=2016-06-20%2011%3A44&df=2016-06-22%2011%3A44&dh=2", "Graph");
+//drawHisto1DStack("/dynamic/netProtocolesPackets.json?dd=2016-06-07%2011%3A44&df=2016-06-20%2011%3A44&pset=1", "Graph");
+//drawHisto1DStack("/dynamic/netTop10NbExtHosts.json?dd=2016-06-15%2011%3A44&df=2016-06-16%2011%3A44&dh=2", "Graph");
+//drawHisto1DStack("./data.json", "Graph");
