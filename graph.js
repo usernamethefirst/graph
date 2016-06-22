@@ -2598,7 +2598,7 @@ d3.select(window).on("keydown",function (){
 
 
 //drawHisto1DStack("/dynamic/netNbLocalHosts.json?accurate=true&dd=2016-06-07%2011%3A44&df=2016-06-16%2011%3A44&dh=2", "Graph");
-drawHisto1DStack("/dynamic/netTop10appTraffic.json?service=ext&dd=2016-06-20%2011%3A44&df=2016-06-22%2011%3A44&dh=2", "Graph");
+//drawHisto1DStack("/dynamic/netTop10appTraffic.json?service=ext&dd=2016-06-20%2011%3A44&df=2016-06-22%2011%3A44&dh=2", "Graph");
 //drawHisto1DStack("/dynamic/netProtocolesPackets.json?dd=2016-06-07%2011%3A44&df=2016-06-20%2011%3A44&pset=1", "Graph");
-//drawHisto1DStack("/dynamic/netTop10NbExtHosts.json?dd=2016-06-15%2011%3A44&df=2016-06-16%2011%3A44&dh=2", "Graph");
+drawHisto1DStack("/dynamic/netTop10NbExtHosts.json?dd=2016-06-15%2011%3A44&df=2016-06-16%2011%3A44&dh=2", "Graph");
 //drawHisto1DStack("./data.json", "Graph");
