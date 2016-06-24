@@ -1,9 +1,10 @@
-function drawHisto1DStack(urlJson, mydiv) {
+function drawChart(urlJson, mydiv) {
 
     var div = d3.select('#' + mydiv);
     var svg = div.select("svg");
     svg.margin = {top: 50, right: 50, bottom: 50, left: 60, zero:30};
-
+    
+    /*
     //table for legend
     svg.tableWidth = 200;
 
@@ -20,8 +21,7 @@ function drawHisto1DStack(urlJson, mydiv) {
 
     svg.width = divWidth-1.15*svg.tableWidth - svg.margin.left - svg.margin.right;
     svg.height = divHeight - svg.margin.bottom - svg.margin.top;
-
-
+    */
 
 
 
@@ -63,9 +63,11 @@ function drawHisto1DStack(urlJson, mydiv) {
         console.log(json);
 
         if(json[2].type === "IN"){
-            createHisto2DStackDouble(div,svg,json,mydiv,table)
+            createHisto2DStackDouble(div,svg,json,mydiv);
+        }else if(typeof json[2].type !== "undefined"){
+            createHisto2DStackSimple(div,svg,json,mydiv);
         }else{
-            createHisto2DStackSimple(div,svg,json,mydiv,table)
+            createCurve(div,svg,json,mydiv);
         }
 
 
@@ -75,7 +77,34 @@ function drawHisto1DStack(urlJson, mydiv) {
 
 /***********************************************************************************************************/
 
-function createHisto2DStackDouble(div,svg,json,mydiv,table){
+function createHisto2DStackDouble(div,svg,json,mydiv){
+
+    //table for legend
+    svg.tableWidth = 200;
+
+
+
+    var divWidth = Math.max(1.15*svg.tableWidth + svg.margin.left + svg.margin.right + 1,parseInt(div.style("width"),10)),
+      divHeight = Math.max(svg.margin.bottom + svg.margin.top + svg.margin.zero + 1,window.innerHeight);
+
+    var divtable = div.append("div").classed("diagram divtable",true);
+    divtable.append("h4").classed("tableTitle",true).text("Legend");
+    var table= divtable.append("table").classed("diagram font2",true).style("width",svg.tableWidth + "px").style("max-height",
+      (divHeight - 2*parseFloat(getComputedStyle(div.select("h4").node()).fontSize) -60)  + "px");
+
+
+
+    div.style("height",divHeight + "px");
+    svg.attr("width",divWidth-1.15*svg.tableWidth).attr("height",divHeight);
+
+
+
+
+    svg.width = divWidth-1.15*svg.tableWidth - svg.margin.left - svg.margin.right;
+    svg.height = divHeight - svg.margin.bottom - svg.margin.top;
+
+
+
 
 
     svg.x = d3.scale.linear()
@@ -483,12 +512,11 @@ function createHisto2DStackDouble(div,svg,json,mydiv,table){
       .attr("x2",0)
       .attr("y2",svg.margin.zero);
 
-    svg.axisx.selectAll(".tick").select("text").text(function(){
-        var text = d3.select(this).text();
-        if (Math.floor(+text) != +text){
-            d3.select(this).node().parentNode().remove();
+    svg.axisx.selectAll(".tick").select("text").text(function(d){
+        if (Math.floor(d) != d){
+            this.parentNode.remove();
         }else{
-            return svg.legend[+text%svg.legend.length].text;
+            return svg.legend[d%svg.legend.length].text;
         }
     });
 
@@ -499,11 +527,17 @@ function createHisto2DStackDouble(div,svg,json,mydiv,table){
       .orient("left")
     );
 
+    niceTicks(svg.axisyInput.selectAll(".tick"));
+
+
     svg.axisyOutput = svg.append("g").attr('transform', 'translate(' + [svg.margin.left, svg.margin.top] + ')')
       .attr("class", "axis");
     svg.axisyOutput.call(d3.svg.axis()
       .scale(svg.yOutput)
       .orient("left"));
+
+    niceTicks(svg.axisyOutput.selectAll(".tick"));
+
 
 
     //      Label of the y axis
@@ -551,10 +585,11 @@ function createHisto2DStackDouble(div,svg,json,mydiv,table){
 
     var trSelec;
 
-    trSelec = table.selectAll("tr").data(sumArray).enter().append("tr");
+    trSelec = table.selectAll("tr").data(sumArray).enter().append("tr").attr("title",function(d){
+        return d.item + "\n" + "Overall volume: " + Math.round(d.sum*100)/100 + " " + json[0].unit;
+    });
     trSelec.append("td").classed("color",true).append("div").classed("lgd",true).style("background-color", function(d){return colorMap.get(d.item);});
-    trSelec.append("td").classed("item",true).text(function(d){return d.item;});
-
+    trSelec.append("td").classed("item",true).text(function(d){return d.item;})
     trSelec.on("mouseover",activationElems).on("mouseout",desactivationElems);
 
 
@@ -582,7 +617,34 @@ function createHisto2DStackDouble(div,svg,json,mydiv,table){
 
 /***********************************************************************************************************/
 
-function createHisto2DStackSimple(div,svg,json,mydiv,table){
+function createHisto2DStackSimple(div,svg,json,mydiv){
+
+
+    //table for legend
+    svg.tableWidth = 200;
+
+
+
+    var divWidth = Math.max(1.15*svg.tableWidth + svg.margin.left + svg.margin.right + 1,parseInt(div.style("width"),10)),
+      divHeight = Math.max(svg.margin.bottom + svg.margin.top + svg.margin.zero + 1,window.innerHeight);
+
+    var divtable = div.append("div").classed("diagram divtable",true);
+    divtable.append("h4").classed("tableTitle",true).text("Legend");
+    var table= divtable.append("table").classed("diagram font2",true).style("width",svg.tableWidth + "px").style("max-height",
+      (divHeight - 2*parseFloat(getComputedStyle(div.select("h4").node()).fontSize) -60)  + "px");
+
+
+
+    div.style("height",divHeight + "px");
+    svg.attr("width",divWidth-1.15*svg.tableWidth).attr("height",divHeight);
+
+
+
+
+    svg.width = divWidth-1.15*svg.tableWidth - svg.margin.left - svg.margin.right;
+    svg.height = divHeight - svg.margin.bottom - svg.margin.top;
+
+
 
 
     svg.x = d3.scale.linear()
@@ -907,12 +969,11 @@ function createHisto2DStackSimple(div,svg,json,mydiv,table){
       .scale(svg.x)
       .orient("bottom"));
 
-    svg.axisx.selectAll(".tick").select("text").text(function(){
-        var text = d3.select(this).text();
-        if (Math.floor(+text) != +text){
-            d3.select(this).node().parentNode().remove();
+    svg.axisx.selectAll(".tick").select("text").text(function(d){
+        if (Math.floor(d) != d){
+            this.parentNode.remove();
         }else{
-            return svg.legend[+text%svg.legend.length].text;
+            return svg.legend[d%svg.legend.length].text;
         }
     });
 
@@ -922,6 +983,9 @@ function createHisto2DStackSimple(div,svg,json,mydiv,table){
       .scale(svg.y)
       .orient("left")
     );
+
+    niceTicks(svg.axisy.selectAll(".tick"));
+
 
 
     //      Label of the y axis
@@ -969,10 +1033,11 @@ function createHisto2DStackSimple(div,svg,json,mydiv,table){
 
     var trSelec;
 
-    trSelec = table.selectAll("tr").data(sumArray).enter().append("tr");
+    trSelec = table.selectAll("tr").data(sumArray).enter().append("tr").attr("title",function(d){
+        return d.item + "\n" + "Overall volume: " + Math.round(d.sum*100)/100 + " " + json[0].unit;
+    });
     trSelec.append("td").classed("color",true).append("div").classed("lgd",true).style("background-color", function(d){return colorMap.get(d.item);});
     trSelec.append("td").classed("item",true).text(function(d){return d.item;});
-
     trSelec.on("mouseover",activationElems).on("mouseout",desactivationElems);
 
 
@@ -1001,6 +1066,9 @@ function createHisto2DStackSimple(div,svg,json,mydiv,table){
 /***********************************************************************************************************/
 
 function hideShowValuesSimple(svg,trSelec,selection,xlength){
+    var duration = 800;
+
+    var trSelecSize = trSelec.size();
 
     var hiddenValues = [];
     var newValues = JSON.parse(JSON.stringify(svg.values));
@@ -1070,12 +1138,17 @@ function hideShowValuesSimple(svg,trSelec,selection,xlength){
         }
 
         var valuesStart = JSON.parse(JSON.stringify(valuesTrans));
-        var newTotal = Math.max(0.000000001,d3.max(totalSum));
+        var newTotal;
+        if(hiddenValues.length === trSelecSize){
+            newTotal=1;
+        }else {
+            newTotal = d3.max(totalSum);
+        }
         var oldTotal = svg.y.domain()[1]/1.05;
 
 
 
-        svg.transition("hideshow").duration(1000).tween("",function(){
+        svg.transition("hideshow").duration(duration).tween("",function(){
 
             var t0,totalTrans;
 
@@ -1098,11 +1171,106 @@ function hideShowValuesSimple(svg,trSelec,selection,xlength){
             }
         });
 
-
-
-
     });
 
+    trSelec.on("contextmenu",function(d) {
+
+        d3.event.preventDefault();
+
+        var totalSum = [];
+
+        var x = svg.values[0].x;
+        var sum;
+        var i=0;
+
+        if(svg.popup.pieChart !==null){
+            return;
+        }
+
+        var index = hiddenValues.indexOf(d.item);
+
+
+        if((index !== -1) || (trSelecSize - 1 !== hiddenValues.length )){
+            //Hide all data except this one
+            hiddenValues = trSelec.data().map(function(elem){return elem.item;});
+            hiddenValues.splice(hiddenValues.indexOf(d.item),1);
+
+            trSelec.classed("hidden",true);
+            d3.select(this).classed("hidden",false);
+
+
+
+
+            while(x < xlength){
+                sum=0;
+                while(i <  newValues.length && newValues[i].x == x){
+                    if(newValues[i].item !== d.item){
+                        newValues[i].height = 0;
+                    }else{
+                        newValues[i].height = svg.values[i].height;
+                    }
+                    sum += newValues[i].height;
+                    newValues[i].y = sum;
+                    i++;
+                }
+                totalSum.push(sum);
+                x++;
+            }
+            
+        }else{
+            //index === -1 && hiddenValues.length == trSelec.size() -1
+            // ->show all data.
+            hiddenValues = [];
+            trSelec.classed("hidden",false);
+
+            while(x < xlength){
+                sum=0;
+                while(i <  newValues.length && newValues[i].x == x){
+                    newValues[i].height = svg.values[i].height;
+                    sum += newValues[i].height;
+                    newValues[i].y = sum;
+                    i++;
+                }
+                totalSum.push(sum);
+                x++;
+            }
+
+        }
+
+
+
+
+
+        var valuesStart = JSON.parse(JSON.stringify(valuesTrans));
+        var newTotal = Math.max(0.000000001,d3.max(totalSum));
+        var oldTotal = svg.y.domain()[1]/1.05;
+
+
+
+        svg.transition("hideshow").duration(duration).tween("",function(){
+
+            var t0,totalTrans;
+
+            return function(t){
+
+                t=Math.min(1,Math.max(0,t));
+                t0 = (1-t);
+
+                valuesTrans.forEach(function(elem,i){
+                    elem.y = t0*valuesStart[i].y + t*newValues[i].y;
+                    elem.height = t0*valuesStart[i].height + t*newValues[i].height;
+                });
+
+                totalTrans = oldTotal* t0 + newTotal*t;
+                var actTranslate1 = -svg.translate[1]/(svg.scaley*svg.scale);
+                svg.y.domain([0,totalTrans*1.05]);
+                svg.newY.domain([svg.y.invert(actTranslate1 + svg.height/(svg.scale*svg.scaley)), svg.y.invert(actTranslate1) ]);
+                updateHisto1DStackSimple(svg);
+
+            }
+        });
+
+    });
 
 }
 
@@ -1111,8 +1279,9 @@ function hideShowValuesSimple(svg,trSelec,selection,xlength){
 /***********************************************************************************************************/
 
 function hideShowValuesDouble(svg,trSelec,selectionIn,selectionOut,xlength){
-    var duration = 5000;
-    var hiddenItems = [];
+    var duration = 800;
+    var trSelecSize = trSelec.size();
+    var hiddenValues = [];
     var newValuesIn = JSON.parse(JSON.stringify(svg.valuesIn));
     var newValuesOut = JSON.parse(JSON.stringify(svg.valuesOut));
     var valuesInTrans = JSON.parse(JSON.stringify(svg.valuesIn));
@@ -1132,11 +1301,11 @@ function hideShowValuesDouble(svg,trSelec,selectionIn,selectionOut,xlength){
             return;
         }
 
-        var index = hiddenItems.indexOf(d.item);
+        var index = hiddenValues.indexOf(d.item);
 
         if( index === -1){
             //Hide the data
-            hiddenItems.push(d.item);
+            hiddenValues.push(d.item);
             d3.select(this).classed("hidden",true);
 
 
@@ -1179,7 +1348,7 @@ function hideShowValuesDouble(svg,trSelec,selectionIn,selectionOut,xlength){
 
         }else{
             //Show the data
-            hiddenItems.splice(index,1);
+            hiddenValues.splice(index,1);
             d3.select(this).classed("hidden",false);
 
 
@@ -1210,6 +1379,185 @@ function hideShowValuesDouble(svg,trSelec,selectionIn,selectionOut,xlength){
                     if(newValuesOut[i].item === d.item){
                         newValuesOut[i].height = svg.valuesOut[i].height;
                     }
+                    sum += newValuesOut[i].height;
+                    newValuesOut[i].y = sum;
+                    i++;
+                }
+                totalSumOut.push(sum);
+                x++;
+            }
+
+
+        }
+
+
+
+        var newTotalIn;
+        var newTotalOut;
+
+        if(hiddenValues.length === trSelecSize){
+            newTotalIn=1;
+            newTotalOut=1;
+        }else{
+            newTotalIn=d3.max(totalSumIn);
+            newTotalOut=d3.max(totalSumOut);
+        }
+
+        var oldTotalIn = svg.yInput.domain()[1]/1.1;
+        var oldTotalOut = svg.yOutput.domain()[1]/1.1;
+
+        var valuesInStart = JSON.parse(JSON.stringify(valuesInTrans));
+        var valuesOutStart = JSON.parse(JSON.stringify(valuesOutTrans));
+
+        svg.transition("hideshow").duration(duration).tween("",function(){
+            var t0,totalInTrans, totalOutTrans;
+
+            return function(t){
+
+                t=Math.min(1,Math.max(0,t));
+                t0 = (1-t);
+
+                valuesInTrans.forEach(function(elem,i){
+                    elem.y = t0*valuesInStart[i].y + t*newValuesIn[i].y;
+                    elem.height = t0*valuesInStart[i].height + t*newValuesIn[i].height;
+                });
+
+                valuesOutTrans.forEach(function(elem,i){
+                    elem.y = t0*valuesOutStart[i].y + t*newValuesOut[i].y;
+                    elem.height = t0*valuesOutStart[i].height + t*newValuesOut[i].height;
+                });
+
+
+                totalInTrans = oldTotalIn* t0 + newTotalIn*t;
+                totalOutTrans = oldTotalOut*t0 + newTotalOut*t;
+                var actTranslate1 = -svg.translate[1]/(svg.scaley*svg.scale);
+                svg.heightOutput = (svg.height - svg.margin.zero)*totalOutTrans/(totalInTrans+totalOutTrans);
+                svg.yInput.range([svg.heightOutput+svg.margin.zero,svg.height]);
+                svg.yOutput.range([svg.heightOutput,0]);
+                svg.yInput.domain([0,totalInTrans*1.1]);
+                svg.yOutput.domain([0,totalOutTrans*1.1]);
+                svg.newYOutput.range([Math.min(svg.height,Math.max(0,svg.heightOutput*svg.scale*svg.scaley+svg.translate[1])),0]);
+                svg.newYInput.range([Math.min(svg.height,Math.max(0,svg.heightOutput*svg.scale*svg.scaley+svg.translate[1] + svg.margin.zero)),svg.height]);
+                svg.newYOutput.domain([svg.yOutput.invert(svg.height/(svg.scale*svg.scaley) + actTranslate1),
+                    svg.yOutput.invert(actTranslate1)]);
+
+                svg.newYInput.domain([svg.yInput.invert(actTranslate1  + (1-1/(svg.scale*svg.scaley))*svg.margin.zero),
+                    svg.yInput.invert(actTranslate1 + (1-1/(svg.scale*svg.scaley))*svg.margin.zero + svg.height/(svg.scale*svg.scaley))]);
+
+
+                updateHisto1DStackDouble(svg);
+
+            }
+
+
+
+        });
+
+
+    });
+
+    trSelec.on("contextmenu",function(d) {
+
+        d3.event.preventDefault();
+
+        var totalSumIn = [];
+        var totalSumOut = [];
+
+        var x;
+        var sum;
+        var i;
+
+        if (svg.popup.pieChart !== null) {
+            return;
+        }
+
+        var index = hiddenValues.indexOf(d.item);
+
+
+        if ((index !== -1) || (trSelecSize - 1 !== hiddenValues.length )) {
+
+            //Hide all data except this one
+            hiddenValues = trSelec.data().map(function (elem) {
+                return elem.item;
+            });
+            hiddenValues.splice(hiddenValues.indexOf(d.item), 1);
+
+            trSelec.classed("hidden", true);
+            d3.select(this).classed("hidden", false);
+
+
+
+            x=svg.valuesIn[0].x;
+            i=0;
+
+            while(x < xlength){
+                sum=0;
+                while(i <  newValuesIn.length && newValuesIn[i].x == x){
+                    if(newValuesIn[i].item !== d.item){
+                        newValuesIn[i].height = 0;
+                    }else{
+                        newValuesIn[i].height = svg.valuesIn[i].height;
+                    }
+                    newValuesIn[i].y = sum;
+                    sum += newValuesIn[i].height;
+                    i++;
+                }
+                totalSumIn.push(sum);
+                x++;
+            }
+
+            x = svg.valuesOut[0].x;
+            i=0;
+
+            while(x < xlength){
+                sum=0;
+
+                while(i <  newValuesOut.length && newValuesOut[i].x == x){
+                    if(newValuesOut[i].item !== d.item){
+                        newValuesOut[i].height = 0;
+                    }else{
+                        newValuesOut[i].height = svg.valuesOut[i].height;
+                    }
+
+                    sum += newValuesOut[i].height;
+                    newValuesOut[i].y = sum;
+                    i++;
+                }
+                totalSumOut.push(sum);
+                x++;
+            }
+
+
+        } else {
+            //index === -1 && hiddenValues.length == trSelec.size() -1
+            // ->show all data.
+            hiddenValues = [];
+            trSelec.classed("hidden", false);
+
+            x=svg.valuesIn[0].x;
+            i=0;
+
+            while(x < xlength){
+                sum=0;
+                while(i <  newValuesIn.length && newValuesIn[i].x == x){
+                    newValuesIn[i].height = svg.valuesIn[i].height;
+                    newValuesIn[i].y = sum;
+                    sum += newValuesIn[i].height;
+                    i++;
+                }
+                totalSumIn.push(sum);
+                x++;
+            }
+
+            x = svg.valuesOut[0].x;
+            i=0;
+
+            while(x < xlength){
+                sum=0;
+
+                while(i <  newValuesOut.length && newValuesOut[i].x == x){
+
+                    newValuesOut[i].height = svg.valuesOut[i].height;
                     sum += newValuesOut[i].height;
                     newValuesOut[i].y = sum;
                     i++;
@@ -1279,59 +1627,6 @@ function hideShowValuesDouble(svg,trSelec,selectionIn,selectionOut,xlength){
 
 
 
-        /*
-                svg.heightOutput = (svg.height - svg.margin.zero)*totalOut/(totalIn+totalOut);
-
-                svg.yInput.range([svg.heightOutput+svg.margin.zero,svg.height]);
-                svg.yOutput.range([svg.heightOutput,0]);
-
-
-                //the *1.1 operation allow a little margin
-                svg.yInput.domain([0,totalIn*1.1]);
-                svg.yOutput.domain([0,totalOut*1.1]);*/
-/*
-
-        selectionIn.transition("hideshow").duration(duration).tween("",function(data,i){
-            var rect =d3.select(this);
-            var ystart = data.y;
-            var heightstart = data.height;
-            var elem = JSON.parse(JSON.stringify(newValuesIn[i]));
-            var yend = elem.y;
-            var heightend = elem.height;
-
-            return function(t){
-                t=Math.min(1,Math.max(0,t));
-
-                elem.y = (1-t)*ystart + t*yend;
-                elem.height = (1-t)*heightstart + t*heightend;
-                rect.datum(elem)
-                  .attr("y", function(d){return svg.newYInput(d.y);})
-                  .attr("height", function(d){return svg.newYInput(d.height) - svg.newYInput(svg.yInput.domain()[0]);});
-            }
-
-        });
-
-        selectionOut.transition("hideshow").duration(duration).tween("",function(data,i){
-            var rect =d3.select(this);
-            var ystart = data.y;
-            var heightstart = data.height;
-            var elem = JSON.parse(JSON.stringify(newValuesOut[i]));
-            var yend = elem.y;
-            var heightend = elem.height;
-
-            return function(t){
-                t=Math.min(1,Math.max(0,t));
-
-                elem.y = (1-t)*ystart + t*yend;
-                elem.height = (1-t)*heightstart + t*heightend;
-                rect.datum(elem)
-                  .attr("y", function(d){return svg.newYOutput(d.y);})
-                  .attr("height", function(d){return svg.newYOutput(svg.yOutput.domain()[0]) - svg.newYOutput(d.height);});
-            }
-
-        })*/
-
-
 
 
     });
@@ -1372,18 +1667,19 @@ function updateHisto1DStackSimple(svg){
       .scale(svg.newX)
       .orient("bottom"));
 
-    svg.axisx.selectAll(".tick").select("text").text(function(){
-        var text = d3.select(this).text();
-        if (Math.floor(+text) != +text){
-            d3.select(this).node().parentNode.remove();
+    svg.axisx.selectAll(".tick").select("text").text(function(d){
+        if (Math.floor(d) != d){
+            this.parentNode.remove();
         }else{
-            return svg.legend[+text%svg.legend.length].text;
+            return svg.legend[d%svg.legend.length].text;
         }
     });
 
     svg.axisy.call(d3.svg.axis()
       .scale(svg.newY)
       .orient("left"));
+    niceTicks(svg.axisy.selectAll(".tick"));
+
 
 }
 
@@ -1445,12 +1741,11 @@ function updateHisto1DStackDouble(svg){
         .attr("x2",0)
         .attr("y2",svg.margin.zero);
 
-    svg.axisx.selectAll(".tick").select("text").text(function(){
-        var text = d3.select(this).text();
-        if (Math.floor(+text) != +text){
-            d3.select(this).node().parentNode.remove();
+    svg.axisx.selectAll(".tick").select("text").text(function(d){
+        if (Math.floor(d) != d){
+            this.parentNode.remove();
         }else{
-            return svg.legend[+text%svg.legend.length].text;
+            return svg.legend[d%svg.legend.length].text;
         }
     });
 
@@ -1461,15 +1756,42 @@ function updateHisto1DStackDouble(svg){
         .scale(svg.newYOutput)
         .orient("left"));
 
+    niceTicks(svg.axisyOutput.selectAll(".tick"));
+
+
+
     svg.axisyInput.call(d3.svg.axis()
         .scale(svg.newYInput)
         .orient("left"));
+
+    niceTicks(svg.axisyInput.selectAll(".tick"));
+
 
 
 
 }
 
+/***********************************************************************************************************/
+//remove some ticks to avoid superimposition, for vertical axis
 
+function niceTicks(selectick){
+    var selecsize = selectick.size();
+
+    if(selecsize >1){
+        var distTick = Math.abs(selectick[0][0].getAttribute("transform").split(/[,)(]+/)[2]
+          - selectick[0][1].getAttribute("transform").split(/[,)(]+/)[2]);
+        var fontsize = parseFloat(getComputedStyle(selectick[0][0]).fontSize);
+        var nb = Math.ceil(fontsize/distTick);
+        if (nb>1){
+            for (var i=1; i<selecsize;i++){
+                if(i%nb !=0){
+                    selectick[0][i].remove();
+                }
+            }
+        }
+
+    }
+}
 
 /***********************************************************************************************************/
 
@@ -2254,7 +2576,7 @@ function colorEval(firstValue){
     var z = 5;
 
     var starty = 0.5;
-    var startz = 0.4;
+    var startz = 0.5;
     var segmy = (1 - starty)/6;
     var segmz = (0.8 - startz)/10;
 
@@ -2274,10 +2596,10 @@ function colorEval(firstValue){
         }
         while(idecal == Math.floor(idecal) && calcexpmin > -exp);
 
-        console.log("i " + i + "  exp " + exp + " idecal "+ idecal + " calcexpmin " + calcexpmin + " 1/4 " + Math.floor(((i-1)%4)/3));
+        //console.log("i " + i + "  exp " + exp + " idecal "+ idecal + " calcexpmin " + calcexpmin + " 1/4 " + Math.floor(((i-1)%4)/3));
         added = (Math.pow(2,calcexpmin) + Math.floor(((i-1)%4)/3)*0.5)*180;
         val =(val + added)%360;
-        console.log("val " + val);
+        //console.log("val " + val);
 
 
         y = (y+4)%7;
@@ -2285,7 +2607,7 @@ function colorEval(firstValue){
         s = y*segmy +starty;
         l= z*segmz +startz;
 
-
+        //console.log(color);
 
         return color;
     }
@@ -2578,6 +2900,283 @@ function addZoomSimple(svg,updateFunction){
 
 /************************************************************************************************************/
 
+function createCurve(div,svg,json,mydiv){
+
+
+
+    var divWidth = Math.max(svg.margin.left + svg.margin.right + 1,parseInt(div.style("width"),10)),
+      divHeight = Math.max(svg.margin.bottom + svg.margin.top + 1,window.innerHeight);
+
+
+
+    div.style("height",divHeight + "px");
+    svg.attr("width",divWidth).attr("height",divHeight);
+
+
+    svg.width = divWidth - svg.margin.left - svg.margin.right;
+    svg.height = divHeight - svg.margin.bottom - svg.margin.top;
+
+
+
+
+    svg.x = d3.scale.linear()
+      .range([0, svg.width]);
+
+    svg.y = d3.scale.linear()
+      .range([svg.height,0]);
+
+    svg.svg = svg.append("svg").attr("x",svg.margin.left).attr("y",svg.margin.top).attr("width",svg.width)
+      .attr("height",svg.height).classed("svgline",true);
+
+    svg.chart= svg.svg.append("g");
+
+    svg.valueline = d3.svg.line();
+    svg.area = d3.svg.area();
+    var tab = json[2].tab;
+    var tabLength = tab.length;
+
+    //value each couple minutes;
+    var valuesPerHour = 30;
+    var i;
+
+    svg.data = [];
+
+    for(var x = 0; x<tabLength; x++){
+
+        if(tab[x].y.length === 0){
+
+            for(i = 0;i<valuesPerHour;i++){
+                svg.data.push(0);
+            }
+
+        }else{
+
+            for(i = 0;i<valuesPerHour;i++){
+                svg.data.push(tab[x].y[i]);
+            }
+
+        }
+
+    }
+
+
+    svg.x.domain([0,svg.data.length]);
+    //*1.05 for margin
+    svg.y.domain([0,d3.max(svg.data)*1.05]);
+
+
+
+
+    
+    console.log(svg.data);
+
+
+    svg.chart.append("path").classed("line",true);
+    svg.chart.append("path").classed("area",true);
+
+    svg.area.x(function(d,i){
+        return svg.x(i);
+    }).y1(function(d){
+        return svg.y(d);
+    }).y0(svg.y.range()[0]);
+
+
+    svg.valueline
+      .x(function(d,i){
+          return svg.x(i);
+      }).y(function(d){
+        return svg.y(d);
+    });
+
+
+
+    svg.axisx = svg.append("g")
+      .classed("x axis",true)
+      .attr('transform', 'translate(' + [svg.margin.left, svg.height + svg.margin.top] +  ")");
+
+    svg.axisx.call(d3.svg.axis()
+      .scale(svg.x)
+      .orient("bottom"));
+
+    svg.axisy = svg.append("g").attr('transform', 'translate(' + [svg.margin.left, svg.margin.top] + ')').classed("y axis",true);
+    svg.axisy.call(d3.svg.axis()
+      .scale(svg.y)
+      .orient("left"));
+
+    niceTicks(svg.axisy);
+
+
+    //      Label of the y axis
+    svg.ylabel = svg.axisy.append("text")
+      .attr("class", "label")
+      .attr("text-anchor", "middle")
+      .attr("dy", "1em")
+      .attr('y',- svg.margin.left)
+      .attr("x",- svg.height/2)
+      .attr("transform", "rotate(-90)")
+      .text(json[0].unit);
+
+    var mn;
+    svg.axisx.selectAll(".tick").select("text").text(function(d){
+        mn = ((d%30)*2);
+        if(mn !=0){
+            return svg.legend[Math.floor(d/30)%svg.legend.length].text +mn;
+
+        }
+
+        return svg.legend[Math.floor(d/30)%svg.legend.length].text;
+    });
+
+    svg.newX = d3.scale.linear().range(svg.x.range()).domain(svg.x.domain());
+    svg.newY = d3.scale.linear().range(svg.y.range()).domain(svg.y.domain());
+
+
+    svg.newValueline = d3.svg.line();
+    svg.newArea = d3.svg.area();
+
+
+
+    svg.newArea.x(function(d,i){
+        return svg.newX(i);
+    }).y1(function(d){
+        return svg.newY(d);
+    }).y0(svg.newY.range()[0]);
+
+
+    svg.newValueline
+      .x(function(d,i){
+          return svg.newX(i);
+      }).y(function(d){
+        return svg.newY(d);
+    });
+
+
+
+
+    svg.transition("start").duration(1000).tween("",function(){
+
+        var data = JSON.parse(JSON.stringify(svg.data));
+        var line = svg.chart.select(".line");
+        var area = svg.chart.select(".area");
+
+        return function(t){
+            t=Math.min(1,Math.max(0,t));
+            svg.data = data.map(function(elem,i){return data[i]*t;});
+            line.attr("d",svg.newValueline(svg.data ));
+            area.attr("d",svg.newArea(svg.data));
+        }
+    });
+
+
+    addZoomSimple(svg,updateCurve);
+
+    d3.select(window).on("resize." + mydiv, function(){
+        console.log("resize");
+        redrawCurve(div,svg);
+    } );
+
+
+}
+/************************************************************************************************************/
+
+function redrawCurve(div,svg){
+
+    var divWidth = Math.max(svg.margin.left + svg.margin.right + 1,parseInt(div.style("width"),10)),
+      divHeight = Math.max(svg.margin.bottom + svg.margin.top + 1,window.innerHeight);
+    console.log("width " + divWidth );
+
+    var oldsvgheight = svg.height;
+    var oldsvgwidth = svg.width;
+    div.style("height",divHeight + "px");
+
+    svg.attr("width",divWidth).attr("height",divHeight);
+
+    svg.width = divWidth - svg.margin.left - svg.margin.right;
+    svg.height = divHeight - svg.margin.bottom - svg.margin.top;
+
+
+    var ratiox = svg.width/oldsvgwidth;
+    var ratioy = svg.height/oldsvgheight;
+
+
+    svg.x.range([0, svg.width]);
+
+    svg.y.range([svg.height,0]);
+
+    svg.svg.attr("width",svg.width).attr("height",svg.height);
+
+    svg.ylabel.attr("x",- svg.height/2).attr('y',- svg.margin.left);
+
+    svg.frame.select(".rectOverlay").attr("height",svg.height);
+
+
+    svg.translate[1] = svg.translate[1]*ratioy;
+    svg.translate[0] = svg.translate[0]*ratiox;
+
+    var scaleytot = svg.scale*svg.scaley;
+    var scalextot = svg.scale*svg.scalex;
+
+    svg.scale = Math.max(scalextot,scaleytot);
+    svg.scalex = scalextot/svg.scale;
+    svg.scaley = scaleytot/svg.scale;
+
+    svg.zoom.scale(svg.scale);
+
+
+    svg.newX.range([0,svg.width]);
+    svg.newY.range([svg.height,0]);
+    svg.newArea.y0(svg.newY.range()[0]);
+
+    svg.zoom.translate(svg.translate);
+    svg.axisx.attr('transform', 'translate(' + [svg.margin.left, svg.height+svg.margin.top] +  ")");
+
+    updateCurve(svg);
+
+
+}
+
+/************************************************************************************************************/
+
+function updateCurve(svg){
+
+
+    svg.chart.select(".line").attr("d",svg.newValueline(svg.data));
+    svg.chart.select(".area").attr("d",svg.newArea(svg.data));
+
+    svg.axisx.call(d3.svg.axis()
+      .scale(svg.newX)
+      .orient("bottom"));
+
+    svg.axisy.call(d3.svg.axis()
+      .scale(svg.newY)
+      .orient("left"));
+
+    niceTicks(svg.axisy);
+
+    var mn;
+    svg.axisx.selectAll(".tick").select("text").text(function(d){
+        mn = ((d%30)*2);
+        if(mn !== Math.round(mn)){
+            this.parentNode.remove();
+            return;
+        }
+        if(mn !=0){
+            if(mn <10){
+                mn = "0"+mn;
+            }
+            return svg.legend[Math.floor(d/30)%svg.legend.length].text +mn;
+
+        }
+
+        return svg.legend[Math.floor(d/30)%svg.legend.length].text;
+    });
+
+
+}
+
+
+/************************************************************************************************************/
+
 
 
 isShiftKeyDown = false;
@@ -2597,8 +3196,10 @@ d3.select(window).on("keydown",function (){
     });
 
 
-//drawHisto1DStack("/dynamic/netNbLocalHosts.json?accurate=true&dd=2016-06-07%2011%3A44&df=2016-06-16%2011%3A44&dh=2", "Graph");
-//drawHisto1DStack("/dynamic/netTop10appTraffic.json?service=ext&dd=2016-06-20%2011%3A44&df=2016-06-22%2011%3A44&dh=2", "Graph");
-//drawHisto1DStack("/dynamic/netProtocolesPackets.json?dd=2016-06-07%2011%3A44&df=2016-06-20%2011%3A44&pset=1", "Graph");
-drawHisto1DStack("/dynamic/netTop10NbExtHosts.json?dd=2016-06-15%2011%3A44&df=2016-06-16%2011%3A44&dh=2", "Graph");
-//drawHisto1DStack("./data.json", "Graph");
+//drawChart("/dynamic/netNbLocalHosts.json?accurate=true&dd=2016-06-15%2011%3A44&df=2016-06-16%2011%3A44&dh=2", "Graph");
+drawChart("/dynamic/netTop10appTraffic.json?service=loc&dd=2016-06-22%2011%3A44&df=2016-06-23%2011%3A44&dh=2", "Graph");
+//drawChart("/dynamic/netProtocolesPackets.json?dd=2016-06-18%2011%3A44&df=2016-06-23%2011%3A44&pset=2", "Graph");
+//drawChart("/dynamic/netTop10NbExtHosts.json?dd=2016-06-20%2011%3A44&df=2016-06-23%2011%3A44&dh=2", "Graph");
+//drawChart("./nettop10apptraffic.json", "Graph");
+//drawChart("./nettop10nbexthosts.json", "Graph");
+//drawChart("./netnblocalhosts.json", "Graph");
