@@ -196,3 +196,29 @@ table tr:nth-child(odd) {
     shape-rendering: geometricPrecision;
 
 }
+
+.geometricPrecision{
+    shape-rendering: geometricPrecision;
+}
+
+.countries_boundaries {
+    fill:none;
+    stroke: #777;
+    stroke-linejoin: round;
+    stroke-width: 0.5;
+
+}
+
+.countries_boundaries.interior{
+
+    stroke-dasharray: 2,2;
+
+}
+
+.backgroundSea{
+
+    fill: #bdeeff;
+    width:100%;
+    height:100%;
+
+}

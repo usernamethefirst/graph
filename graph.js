@@ -3,27 +3,10 @@ function drawChart(urlJson, mydiv) {
     var div = d3.select('#' + mydiv);
     var svg = div.select("svg");
     svg.margin = {top: 50, right: 50, bottom: 50, left: 60, zero:30};
-    
-    /*
-    //table for legend
-    svg.tableWidth = 200;
-
-    var divWidth = Math.max(1.15*svg.tableWidth + svg.margin.left + svg.margin.right + 1,parseInt(div.style("width"),10)),
-      divHeight = Math.max(svg.margin.bottom + svg.margin.top + svg.margin.zero + 1,window.innerHeight);
-    
-    var table = div.select("table").style("width",svg.tableWidth + "px").style("max-height",
-        (divHeight - 2*parseFloat(getComputedStyle(div.select("h4").node()).fontSize) -60)  + "px");
 
 
-
-    div.style("height",divHeight + "px");
-    svg.attr("width",divWidth-1.15*svg.tableWidth).attr("height",divHeight);
-
-    svg.width = divWidth-1.15*svg.tableWidth - svg.margin.left - svg.margin.right;
-    svg.height = divHeight - svg.margin.bottom - svg.margin.top;
-    */
-
-
+    createMap(div,svg);
+/*
 
 
     d3.json(urlJson, function (error, json) {
@@ -33,28 +16,7 @@ function drawChart(urlJson, mydiv) {
         //test json conformity
         if(typeof json === "undefined" || json.result != "true" || error){
             console.log("incorrect url/data");
-            var divWidth = parseInt(div.style("width"),10),
-              divHeight = window.innerHeight;
-            svg.nodata = svg.append("text").attr("transform", "translate(" + divWidth + "," +
-                (divHeight/2 ) + ")")
-              .classed("bckgr-txt",true)
-              .text("No data")
-              .style("fill", "#000");
-
-            d3.select(window).on("resize." + mydiv, function(){
-                var divWidth = parseInt(div.style("width"),10),
-                  divHeight = window.innerHeight;
-                console.log("width " + divWidth );
-
-                svg.attr("width",divWidth).attr("height",divHeight);
-
-                div.select("table").style("max-height",
-                  (divHeight - 2*parseFloat(getComputedStyle(div.select("h4").node()).fontSize) -60)  + "px");
-
-                svg.nodata.attr("transform", "translate(" + divWidth + "," +
-                    (divHeight/2 ) + ")");
-
-            } );
+            noData(div,svg);
             return false;
         }
 
@@ -73,10 +35,34 @@ function drawChart(urlJson, mydiv) {
         }
 
 
-    });
+    });*/
 }
 
+/***********************************************************************************************************/
+function noData(div,svg){
+    var divWidth = parseInt(div.style("width"),10),
+      divHeight = window.innerHeight;
+    svg.nodata = svg.append("text").attr("transform", "translate(" + divWidth + "," +
+        (divHeight/2 ) + ")")
+      .classed("bckgr-txt",true)
+      .text("No data")
+      .style("fill", "#000");
 
+    d3.select(window).on("resize." + mydiv, function(){
+        var divWidth = parseInt(div.style("width"),10),
+          divHeight = window.innerHeight;
+        console.log("width " + divWidth );
+
+        svg.attr("width",divWidth).attr("height",divHeight);
+
+        div.select("table").style("max-height",
+          (divHeight - 2*parseFloat(getComputedStyle(div.select("h4").node()).fontSize) -60)  + "px");
+
+        svg.nodata.attr("transform", "translate(" + divWidth + "," +
+          (divHeight/2 ) + ")");
+
+    } );
+}
 /***********************************************************************************************************/
 
 function createHisto2DStackDouble(div,svg,json,mydiv){
@@ -3271,8 +3257,96 @@ function gridDoubleGraph(svg){
 }
 /************************************************************************************************************/
 function createMap(div,svg,json,mydiv){
-    
 
+    d3.json("worldmap.json",function(error, worldmap) {
+
+        if(error){
+            console.log("error worldmap");
+        }
+
+
+        var divWidth = Math.max(svg.margin.left + svg.margin.right + 1,parseInt(div.style("width"),10)),
+          divHeight = Math.max(svg.margin.bottom + svg.margin.top + 1,window.innerHeight);
+
+
+        div.style("height",divHeight + "px");
+
+        svg.width = divWidth - svg.margin.left - svg.margin.right;
+        svg.height = divHeight - svg.margin.bottom - svg.margin.top;
+
+
+        //At scale 100, map format 444.29x281.96
+
+        var projectionScale = Math.min(svg.width/4.4429,svg.height/2.8196);
+
+        svg.width = projectionScale*4.4429;
+        svg.height = projectionScale*2.8196;
+
+        svg.attr("width", svg.width + svg.margin.top + svg.margin.bottom + "px")
+          .attr("height", svg.height + svg.margin.left + svg.margin.right + "px");
+
+        svg.svg = svg.append("svg").attr("x",svg.margin.left).attr("y",svg.margin.top).attr("width",svg.width)
+          .attr("height",svg.height).classed("geometricPrecision",true);
+
+
+        svg.backgroundRect = svg.svg.append("rect").classed("backgroundSea",true);
+        svg.projection = d3.geo.cylindricalEqualArea()
+          .parallel(45)
+          .translate([svg.width/2,svg.height/2])
+          .scale(projectionScale);
+
+
+        svg.path = d3.geo.path().projection(svg.projection);
+
+        svg.map = svg.svg.append("g");
+
+        var f = colorEval();
+
+
+
+
+        //countries
+        svg.map.selectAll(".countries")
+          .data(topojson.feature(worldmap,worldmap.objects.countries).features)
+          .enter().append("path")
+          .style("fill",function(){return f()})
+          .attr("d",svg.path);
+
+        console.log(getComputedStyle(svg.map.node()).width);
+
+        //boundaries
+
+        svg.map.append("path")
+          .datum(topojson.mesh(worldmap,worldmap.objects.countries,function(a,b){
+              return a !==b;
+          }))
+          .attr("d",svg.path)
+          .classed("countries_boundaries interior",true);
+
+
+        svg.map.append("path")
+          .datum(topojson.mesh(worldmap,worldmap.objects.countries,function(a,b){
+              return a ===b;
+          }))
+          .attr("d",svg.path)
+          .classed("countries_boundaries exterior",true);
+
+
+
+
+/*      //test performance rotation
+        svg.transition("earthrotate").duration(1000).ease("linear").tween("",function(){
+
+            return function(t){
+                svg.projection.rotate([t*360,0]);
+                svg.map.attr("d",svg.path.projection(svg.projection));
+            }
+        });*/
+
+
+
+
+    }); //d3.json end
 }
 
 /************************************************************************************************************/
