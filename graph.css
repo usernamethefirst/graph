@@ -125,9 +125,6 @@ td:nth-of-type(2){
 
 .graph{
     width:100%;
-    border: 1px solid rgba(0, 0, 0, 0.43);
-    border-radius: 5px;
-    padding: 100px;
     position:relative;
     background-color: #fcfcfc;
 }
