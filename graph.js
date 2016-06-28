@@ -33,23 +33,25 @@ function drawChart(urlJson, mydiv) {
         //test json conformity
         if(typeof json === "undefined" || json.result != "true" || error){
             console.log("incorrect url/data");
-            svg.nodata = svg.append("text").attr("transform", "translate(" + ((divWidth-1.15*svg.tableWidth)/2) + "," +
+            var divWidth = parseInt(div.style("width"),10),
+              divHeight = window.innerHeight;
+            svg.nodata = svg.append("text").attr("transform", "translate(" + divWidth + "," +
                 (divHeight/2 ) + ")")
               .classed("bckgr-txt",true)
               .text("No data")
               .style("fill", "#000");
 
             d3.select(window).on("resize." + mydiv, function(){
-                var divWidth = Math.max(1.15*svg.tableWidth,parseInt(div.style("width"),10)),
+                var divWidth = parseInt(div.style("width"),10),
                   divHeight = window.innerHeight;
                 console.log("width " + divWidth );
 
-                svg.attr("width",divWidth-1.15*svg.tableWidth).attr("height",divHeight);
+                svg.attr("width",divWidth).attr("height",divHeight);
 
                 div.select("table").style("max-height",
                   (divHeight - 2*parseFloat(getComputedStyle(div.select("h4").node()).fontSize) -60)  + "px");
 
-                svg.nodata.attr("transform", "translate(" + ((divWidth-1.15*svg.tableWidth)/2) + "," +
+                svg.nodata.attr("transform", "translate(" + divWidth + "," +
                     (divHeight/2 ) + ")");
 
             } );
@@ -119,6 +121,9 @@ function createHisto2DStackDouble(div,svg,json,mydiv){
 
     //Will contain the chart itself, without the axis
     svg.chartBackground = svg.svg.append("g");
+
+
+
     svg.chartInput = svg.svg.append('g');
     svg.chartOutput = svg.svg.append('g');
 
@@ -316,6 +321,16 @@ function createHisto2DStackDouble(div,svg,json,mydiv){
     svg.yOutput.domain([0,totalOut*1.1]);
 
     //Text background
+
+
+    svg.rectInput = svg.chartBackground.append("rect").attr("x",0).attr("y",svg.heightOutput+svg.margin.zero)
+      .attr("width",svg.width)
+      .attr("height",svg.height-svg.heightOutput-svg.margin.zero)
+      .style("fill","#e6e6e6");
+
+    //Here, the grid, between the rectInput & the text
+    svg.grid = svg.chartBackground.append("g").classed("grid",true);
+
     svg.textOutput = svg.chartBackground.append("text").classed("bckgr-txt",true)
       .style("fill","#e6e6e6")
       .text("Outgoing");
@@ -324,10 +339,6 @@ function createHisto2DStackDouble(div,svg,json,mydiv){
       parseFloat(getComputedStyle(svg.textOutput.node()).fontSize)) + ")");
 
 
-    svg.rectInput = svg.chartBackground.append("rect").attr("x",0).attr("y",svg.heightOutput+svg.margin.zero)
-      .attr("width",svg.width)
-      .attr("height",svg.height-svg.heightOutput-svg.margin.zero)
-      .style("fill","#e6e6e6");
 
     svg.textInput = svg.chartBackground.append("text").attr("transform", "translate(" + (svg.width/2) + "," +
         ((svg.height + (svg.heightOutput + svg.margin.zero)/3) *0.75) + ")")
@@ -539,6 +550,7 @@ function createHisto2DStackDouble(div,svg,json,mydiv){
     niceTicks(svg.axisyOutput.selectAll(".tick"));
 
 
+    gridDoubleGraph(svg);
 
     //      Label of the y axis
     svg.ylabel = svg.axisyInput.append("text")
@@ -654,6 +666,7 @@ function createHisto2DStackSimple(div,svg,json,mydiv){
 
     svg.svg = svg.append("svg").attr("x",svg.margin.left).attr("y",svg.margin.top).attr("width",svg.width).attr("height",svg.height);
 
+    svg.grid = svg.svg.append("g").classed("grid",true);
 
     //Will contain the chart itself, without the axis
     svg.chart = svg.svg.append("g");
@@ -986,6 +999,7 @@ function createHisto2DStackSimple(div,svg,json,mydiv){
 
     niceTicks(svg.axisy.selectAll(".tick"));
 
+    gridSimpleGraph(svg);
 
 
     //      Label of the y axis
@@ -1680,6 +1694,7 @@ function updateHisto1DStackSimple(svg){
       .orient("left"));
     niceTicks(svg.axisy.selectAll(".tick"));
 
+    gridSimpleGraph(svg);
 
 }
 
@@ -1767,7 +1782,7 @@ function updateHisto1DStackDouble(svg){
     niceTicks(svg.axisyInput.selectAll(".tick"));
 
 
-
+    gridDoubleGraph(svg);
 
 }
 
@@ -2925,8 +2940,11 @@ function createCurve(div,svg,json,mydiv){
     svg.y = d3.scale.linear()
       .range([svg.height,0]);
 
+
     svg.svg = svg.append("svg").attr("x",svg.margin.left).attr("y",svg.margin.top).attr("width",svg.width)
       .attr("height",svg.height).classed("svgline",true);
+
+    svg.grid = svg.svg.append("g").classed("grid",true);
 
     svg.chart= svg.svg.append("g");
 
@@ -3005,6 +3023,7 @@ function createCurve(div,svg,json,mydiv){
 
     niceTicks(svg.axisy);
 
+    gridSimpleGraph(svg,true);
 
     //      Label of the y axis
     svg.ylabel = svg.axisy.append("text")
@@ -3053,7 +3072,7 @@ function createCurve(div,svg,json,mydiv){
 
 
 
-    svg.transition("start").duration(1000).tween("",function(){
+    svg.transition("start").duration(800).tween("",function(){
 
         var data = JSON.parse(JSON.stringify(svg.data));
         var line = svg.chart.select(".line");
@@ -3153,6 +3172,9 @@ function updateCurve(svg){
 
     niceTicks(svg.axisy);
 
+
+
+
     var mn;
     svg.axisx.selectAll(".tick").select("text").text(function(d){
         mn = ((d%30)*2);
@@ -3171,9 +3193,87 @@ function updateCurve(svg){
         return svg.legend[Math.floor(d/30)%svg.legend.length].text;
     });
 
+    gridSimpleGraph(svg,true);
+
+
 
 }
 
+/************************************************************************************************************
+ *
+ *    Create a background grid exclusive for x & y axis
+ *    need svg.grid, svg.axisx and svg.axisy to be set.
+ *
+ ***********************************************************************************************************/
+
+function gridSimpleGraph(svg, isCurve){
+
+    if(typeof isCurve === "undefined"){
+        isCurve = false;
+    }
+
+    svg.grid.selectAll("line").remove();
+
+    if(isCurve) {
+        svg.axisx.selectAll(".tick").each(function () {
+            var transform = this.getAttribute("transform");
+            svg.grid.append("line")
+              .attr("y2", svg.height)
+              .attr("x2", 0)
+              .attr("transform", transform);
+        });
+    }
+
+    svg.axisy.selectAll(".tick").each(function(){
+        var transform = this.getAttribute("transform");
+        svg.grid.append("line")
+          .attr("y2",0)
+          .attr("x2",svg.width)
+          .attr("transform",transform);
+    });
+
+
+
+}
+
+
+/************************************************************************************************************
+ *
+ *    Create a background grid exclusive for x, yInput & yOutput axis
+ *    need svg.grid, svg.axis, svg.axisyInput & svg.axisyOutput to be set.
+ *
+ ***********************************************************************************************************/
+
+function gridDoubleGraph(svg){
+
+
+    svg.grid.selectAll("line").remove();
+
+
+    svg.axisyInput.selectAll(".tick").each(function(){
+        var transform = this.getAttribute("transform");
+        svg.grid.append("line")
+          .attr("y2",0)
+          .attr("x2",svg.width)
+          .attr("transform",transform);
+    });
+
+    svg.axisyOutput.selectAll(".tick").each(function(){
+        var transform = this.getAttribute("transform");
+        svg.grid.append("line")
+          .attr("y2",0)
+          .attr("x2",svg.width)
+          .attr("transform",transform);
+    });
+
+
+
+}
+/************************************************************************************************************/
+function createMap(div,svg,json,mydiv){
+    
+
+}
 
 /************************************************************************************************************/
 
@@ -3196,7 +3296,7 @@ d3.select(window).on("keydown",function (){
     });
 
 
-//drawChart("/dynamic/netNbLocalHosts.json?accurate=true&dd=2016-06-15%2011%3A44&df=2016-06-16%2011%3A44&dh=2", "Graph");
+//drawChart("/dynamic/netNbLocalHosts.json?accurate=true&dd=2016-06-20%2011%3A44&df=2016-06-27%2011%3A44&dh=2", "Graph");
 drawChart("/dynamic/netTop10appTraffic.json?service=loc&dd=2016-06-22%2011%3A44&df=2016-06-23%2011%3A44&dh=2", "Graph");
 //drawChart("/dynamic/netProtocolesPackets.json?dd=2016-06-18%2011%3A44&df=2016-06-23%2011%3A44&pset=2", "Graph");
 //drawChart("/dynamic/netTop10NbExtHosts.json?dd=2016-06-20%2011%3A44&df=2016-06-23%2011%3A44&dh=2", "Graph");

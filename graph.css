@@ -30,6 +30,12 @@ svg.svgline{
     stroke-width: 1;
 }
 
+.grid{
+    stroke:#b3b3b3;
+    shape-rendering: crispEdges;
+    fill: none;
+
+}
 
 .area {
     fill: #dfd8e6;
@@ -119,6 +125,9 @@ td:nth-of-type(2){
 
 .graph{
     width:100%;
+    border: 1px solid rgba(0, 0, 0, 0.43);
+    border-radius: 5px;
+    padding: 100px;
     position:relative;
     background-color: #fcfcfc;
 }
@@ -128,6 +137,7 @@ td:nth-of-type(2){
     font-style: normal;
     font-variant: normal;
 }
+
 
 .font1{
     font-weight: 300;
