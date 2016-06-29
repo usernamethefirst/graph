@@ -5,11 +5,13 @@ function drawChart(urlJson, mydiv) {
     svg.margin = {top: 50, right: 50, bottom: 50, left: 60, zero:30};
 
 
-    createMap(div,svg);
-/*
+    //createMap(div,svg);
+
 
 
     d3.json(urlJson, function (error, json) {
+
+
 
         console.log(json);
 
@@ -26,16 +28,27 @@ function drawChart(urlJson, mydiv) {
         svg.legend = json[1].legend;
         console.log(json);
 
-        if(json[2].type === "IN"){
-            createHisto2DStackDouble(div,svg,json,mydiv);
-        }else if(typeof json[2].type !== "undefined"){
-            createHisto2DStackSimple(div,svg,json,mydiv);
-        }else{
-            createCurve(div,svg,json,mydiv);
-        }
+        whichCreationFunction(urlJson)(div,svg,url,mydiv);
 
+    });
+}
 
-    });*/
+/***********************************************************************************************************/
+
+function whichCreationFunction(urlJson){
+var typeGraph = urlJson.split(/[\.\/]+/);
+    typeGraph = typeGraph[typeGraph.length - 2];
+    console.log(typeGraph);
+    switch(typeGraph){
+        case "netNbLocalHosts":
+            return createCurve;
+        case "netTop10appTraffic":
+        case "netProtocolesPackets":
+            return createHisto2DStackDouble;
+        case "netTop10NbExtHosts":
+            return createHisto2DStackSimple;
+    }
+
 }
 
 /***********************************************************************************************************/
@@ -314,8 +327,6 @@ function createHisto2DStackDouble(div,svg,json,mydiv){
       .attr("height",svg.height-svg.heightOutput-svg.margin.zero)
       .style("fill","#e6e6e6");
 
-    //Here, the grid, between the rectInput & the text
-    svg.grid = svg.chartBackground.append("g").classed("grid",true);
 
     svg.textOutput = svg.chartBackground.append("text").classed("bckgr-txt",true)
       .style("fill","#e6e6e6")
@@ -333,6 +344,8 @@ function createHisto2DStackDouble(div,svg,json,mydiv){
       .style("fill", "#fff");
 
 
+    //Here, the grid, after the rectInput & the text
+    svg.grid = svg.chartBackground.append("g").classed("grid",true);
 
     var dataWidth = 0.75*(svg.x(svg.x.domain()[0] + 1) - svg.x.range()[0]);
     var selectionIn = svg.chartInput.selectAll(".data")
@@ -1851,13 +1864,15 @@ function addZoomDouble(svg,updateFunction){
 
     svg.zoom = d3.behavior.zoom().scaleExtent([1, Infinity]).on("zoom", function () {
 
-            mouseCoord = d3.mouse(svg.frame.node());
+          rectOverlay.attr("width",svg.width);
+
+
+          mouseCoord = d3.mouse(svg.frame.node());
 
 
             if(isNaN(startCoord[0])){
 
                 var e = d3.event;
-
                 if(e.scale == svg.scale){
                     //case: translation
 
@@ -1974,7 +1989,6 @@ function addZoomDouble(svg,updateFunction){
             lastTranslate = svg.translate;
             if(isShiftKeyDown){
                 console.log("key is down start");
-                rectOverlay.attr("width",svg.width);
                 startCoord = d3.mouse(svg.frame.node());
                 startCoord[0] = Math.min(Math.max(startCoord[0],svg.x.range()[0]),svg.x.range()[1]);
                 startCoord[1] = Math.min(Math.max(startCoord[1],0),svg.height);
@@ -1985,9 +1999,10 @@ function addZoomDouble(svg,updateFunction){
         })
         .on("zoomend", function () {
 
-            if(!isNaN(startCoord[0])){
 
-                rectOverlay.attr("width",0);
+            rectOverlay.attr("width",0);
+
+            if(!isNaN(startCoord[0])){
 
 
                 svg.selec.attr("width",  0)
@@ -2710,6 +2725,7 @@ function addZoomSimple(svg,updateFunction){
 
     svg.zoom = d3.behavior.zoom().scaleExtent([1, Infinity]).on("zoom", function () {
 
+          rectOverlay.attr("width",svg.width);
 
           if(isNaN(startCoord[0])){
 
@@ -2816,7 +2832,6 @@ function addZoomSimple(svg,updateFunction){
           console.log("zoomstart");
           if(isShiftKeyDown){
               console.log("key is down start");
-              rectOverlay.attr("width",svg.width);
               startCoord = d3.mouse(svg.frame.node());
               startCoord[0] = Math.min(Math.max(startCoord[0],svg.x.range()[0]),svg.x.range()[1]);
               startCoord[1] = Math.min(Math.max(startCoord[1],svg.y.range()[1]),svg.y.range()[0]);
@@ -2827,10 +2842,10 @@ function addZoomSimple(svg,updateFunction){
       })
       .on("zoomend", function () {
           console.log("zoomend");
+          rectOverlay.attr("width",0);
 
           if(!isNaN(startCoord[0]) && !isNaN(mouseCoord[0])){
 
-              rectOverlay.attr("width",0);
 
 
               svg.selec.attr("width",  0)
@@ -3300,6 +3315,10 @@ function createMap(div,svg,json,mydiv){
 
         svg.map = svg.svg.append("g");
 
+        //stroke-width controlled by javascript to adapt it to the current scale
+
+        svg.svg.style("stroke-width", 0.5);
+        
         var f = colorEval();
 
 
@@ -3309,11 +3328,10 @@ function createMap(div,svg,json,mydiv){
         svg.map.selectAll(".countries")
           .data(topojson.feature(worldmap,worldmap.objects.countries).features)
           .enter().append("path")
-          .style("fill",function(){return f()})
-          .attr("d",svg.path);
-
-        console.log(getComputedStyle(svg.map.node()).width);
-
+          .style("fill",function(){return "#fff"})
+          .attr("d",svg.path)
+          .append("svg:title").text(function(d){return d.id;});
+        
         //boundaries
 
         svg.map.append("path")
@@ -3321,7 +3339,9 @@ function createMap(div,svg,json,mydiv){
               return a !==b;
           }))
           .attr("d",svg.path)
-          .classed("countries_boundaries interior",true);
+          .classed("countries_boundaries interior",true)
+          //zoom dependant, javascript controlled css property.
+          .style("stroke-dasharray", "2,2");
 
 
         svg.map.append("path")
@@ -3331,6 +3351,44 @@ function createMap(div,svg,json,mydiv){
           .attr("d",svg.path)
           .classed("countries_boundaries exterior",true);
 
+
+        //A duplicate map is create and translated next to the other, outside viewport
+        //The -1 operation avoid a little visible cut where the 2 map meet. (only for consistency,
+        //not really useful here, the same kind of formula is kept for the translation this way)
+
+        svg.map2 = d3.select(svg.svg.node().appendChild(svg.map.node().cloneNode(true)))
+          .attr("transform","matrix(1, 0, 0,1," + (svg.width - 1) + ", 0)");
+
+
+
+        svg.translate = [];
+
+        svg.zoom = d3.behavior.zoom().size([svg.width,svg.height]).scaleExtent([1,20]).on("zoom",function(){
+
+            var e = d3.event;
+
+            var widthScale = svg.width*e.scale;
+
+            //for "rotation" of the planisphere, svg.translate[0] should always be in the [0,-widthScale] range.
+            svg.translate[0] = e.translate[0] - Math.ceil(e.translate[0]/widthScale)*widthScale;
+            svg.translate[1] = Math.min(0, Math.max(e.translate[1],svg.height - e.scale*svg.height));
+
+            svg.map.attr("transform","matrix(" + e.scale + ", 0, 0, " + e.scale + ", " + svg.translate[0] + ", " + svg.translate[1] + ")");
+
+            svg.map2.attr("transform","matrix(" + e.scale + ", 0, 0, " + e.scale + ", "
+              + (widthScale + svg.translate[0] - 1) + ", " + svg.translate[1] + ")");
+
+            svg.svg.style("stroke-width",0.5/e.scale);
+
+            var dashValue = 2/e.scale;
+            svg.svg.selectAll(".interior").style("stroke-dasharray",dashValue + "," + dashValue)
+
+
+        }).on("zoomend",function(){
+            svg.zoom.translate(svg.translate);
+        });
+
+        svg.svg.call(svg.zoom);
 
 
 
@@ -3371,9 +3429,9 @@ d3.select(window).on("keydown",function (){
 
 
 //drawChart("/dynamic/netNbLocalHosts.json?accurate=true&dd=2016-06-20%2011%3A44&df=2016-06-27%2011%3A44&dh=2", "Graph");
-drawChart("/dynamic/netTop10appTraffic.json?service=loc&dd=2016-06-22%2011%3A44&df=2016-06-23%2011%3A44&dh=2", "Graph");
+//drawChart("/dynamic/netTop10appTraffic.json?service=loc&dd=2016-06-22%2011%3A44&df=2016-06-23%2011%3A44&dh=2", "Graph");
 //drawChart("/dynamic/netProtocolesPackets.json?dd=2016-06-18%2011%3A44&df=2016-06-23%2011%3A44&pset=2", "Graph");
 //drawChart("/dynamic/netTop10NbExtHosts.json?dd=2016-06-20%2011%3A44&df=2016-06-23%2011%3A44&dh=2", "Graph");
-//drawChart("./nettop10apptraffic.json", "Graph");
-//drawChart("./nettop10nbexthosts.json", "Graph");
-//drawChart("./netnblocalhosts.json", "Graph");
+drawChart("./netTop10appTraffic.json", "Graph");
+//drawChart("./netTop10NbExtHosts.json", "Graph");
+//drawChart("./netNbLocalHosts.json", "Graph");

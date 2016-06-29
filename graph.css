@@ -203,17 +203,10 @@ table tr:nth-child(odd) {
 
 .countries_boundaries {
     fill:none;
-    stroke: #777;
     stroke-linejoin: round;
-    stroke-width: 0.5;
-
+    stroke: #777;
 }
 
-.countries_boundaries.interior{
-
-    stroke-dasharray: 2,2;
-
-}
 
 .backgroundSea{
 
