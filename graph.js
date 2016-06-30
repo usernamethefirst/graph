@@ -2961,6 +2961,7 @@ function addZoomSimple(svg,updateFunction){
     svg.call(svg.zoom);
 }
 
+
 /************************************************************************************************************/
 
 function createCurve(div,svg,urlJson,mydiv){
@@ -2996,10 +2997,10 @@ function createCurve(div,svg,urlJson,mydiv){
         svg.height = divHeight - svg.margin.bottom - svg.margin.top;
 
 
-        svg.x = d3.scale.linear()
+        svg.x = d3.scaleLinear()
           .range([0, svg.width]);
 
-        svg.y = d3.scale.linear()
+        svg.y = d3.scaleLinear()
           .range([svg.height, 0]);
 
 
@@ -3010,8 +3011,8 @@ function createCurve(div,svg,urlJson,mydiv){
 
         svg.chart = svg.svg.append("g");
 
-        svg.valueline = d3.svg.line();
-        svg.area = d3.svg.area();
+        svg.valueline = d3.line();
+        svg.area = d3.area();
         var tab = json[2].tab;
         var tabLength = tab.length;
 
@@ -3070,14 +3071,10 @@ function createCurve(div,svg,urlJson,mydiv){
           .classed("x axis", true)
           .attr('transform', 'translate(' + [svg.margin.left, svg.height + svg.margin.top] + ")");
 
-        svg.axisx.call(d3.svg.axis()
-          .scale(svg.x)
-          .orient("bottom"));
+        svg.axisx.call(d3.axisBottom(svg.x));
 
         svg.axisy = svg.append("g").attr('transform', 'translate(' + [svg.margin.left, svg.margin.top] + ')').classed("y axis", true);
-        svg.axisy.call(d3.svg.axis()
-          .scale(svg.y)
-          .orient("left"));
+        svg.axisy.call(d3.axisLeft(svg.y));
 
         niceTicks(svg.axisy);
 
@@ -3104,12 +3101,12 @@ function createCurve(div,svg,urlJson,mydiv){
             return svg.legend[Math.floor(d / 30) % svg.legend.length].text;
         });
 
-        svg.newX = d3.scale.linear().range(svg.x.range()).domain(svg.x.domain());
-        svg.newY = d3.scale.linear().range(svg.y.range()).domain(svg.y.domain());
+        svg.newX = d3.scaleLinear().range(svg.x.range()).domain(svg.x.domain());
+        svg.newY = d3.scaleLinear().range(svg.y.range()).domain(svg.y.domain());
 
 
-        svg.newValueline = d3.svg.line();
-        svg.newArea = d3.svg.area();
+        svg.newValueline = d3.line();
+        svg.newArea = d3.area();
 
 
         svg.newArea.x(function (d, i) {
@@ -3144,11 +3141,11 @@ function createCurve(div,svg,urlJson,mydiv){
         });
 
 
-        addZoomSimple(svg, updateCurve);
+        //addZoomSimple(svg, updateCurve);
 
         d3.select(window).on("resize." + mydiv, function () {
             console.log("resize");
-            redrawCurve(div, svg);
+           // redrawCurve(div, svg);
         });
 
     });
@@ -3278,7 +3275,8 @@ function gridSimpleGraph(svg, isCurve){
             var transform = this.getAttribute("transform");
             svg.grid.append("line")
               .attr("y2", svg.height)
-              .attr("x2", 0)
+              .attr("x1", 0.5)
+              .attr("x2", 0.5)
               .attr("transform", transform);
         });
     }
@@ -3286,7 +3284,8 @@ function gridSimpleGraph(svg, isCurve){
     svg.axisy.selectAll(".tick").each(function(){
         var transform = this.getAttribute("transform");
         svg.grid.append("line")
-          .attr("y2",0)
+          .attr("y1",0.5)
+          .attr("y2",0.5)
           .attr("x2",svg.width)
           .attr("transform",transform);
     });
@@ -3345,98 +3344,100 @@ function gridDoubleGraph(svg){
 
 function createMap(div,svg,urlJson,mydiv){
 
+    //finding/computing the div dimensions
+
+    var divWidth = Math.max(svg.margin.left + svg.margin.right + 1,parseInt(div.style("width"),10)),
+      divHeight = Math.max(svg.margin.bottom + svg.margin.top + 1,window.innerHeight);
+
+
+    //div height instantiated
+
+    div.style("height",divHeight + "px");
+
+    //Some pre-computation to find the dimensions of the map (with a determined height/width ratio
+    // for a given standard latitude)
+
+    //Maximum potential width & height the map will have
+
+    svg.width = divWidth - svg.margin.left - svg.margin.right;
+    svg.height = divHeight - svg.margin.bottom - svg.margin.top;
+
+    //The wished standard latitude for a cylindrical equal-area projection (in degree)
+    //37.5: Hobo-Dyer projection, 45: Gall-Peters projection
+
+    var standardParallelDeg = 37.5;
+
+    //Conversion in radians and cosinus precomputation
+
+    var standardParallelRad = standardParallelDeg*2*Math.PI/360;
+    var cosStdPar = Math.cos(standardParallelRad);
+
+    //evaluation of the map width & height if the projection scale = 1, then homothetic zooming.
+
+    svg.mapDefaultWidth = 2*Math.PI*cosStdPar;
+    svg.mapDefaultHeight = 2/cosStdPar;
+
+    //evaluation of the optimal scale coefficient for the chosen format
+
+    var projectionScale = Math.min(svg.width/svg.mapDefaultWidth,svg.height/svg.mapDefaultHeight);
+
+    //update of the correct width & height
+
+    svg.width = projectionScale*svg.mapDefaultWidth;
+    svg.height = projectionScale*svg.mapDefaultHeight;
+
+    //dimensions of the root svg (= with margins)
+
+    svg.attr("width", svg.width + svg.margin.top + svg.margin.bottom + "px")
+      .attr("height", svg.height + svg.margin.left + svg.margin.right + "px");
+
+    //dimensions of the svg map container (= without margins)
+
+    svg.svg = svg.append("svg").attr("x",svg.margin.left).attr("y",svg.margin.top).attr("width",svg.width)
+      .attr("height",svg.height).classed("geometricPrecision",true);
+
+    //A rect is appended first (= background) with the size of svg.svg as a sea representation
+
+    svg.backgroundRect = svg.svg.append("rect").attr("width",svg.width).attr("height",svg.height).classed("backgroundSea",true);
+
+    //Computation of the cylindrical equal-area projection with the given standard latitude and
+    // the precomputed scale projectionScale
+
+    var projection = d3.geoProjection(function(lambda,phi){
+        return [lambda*cosStdPar,Math.sin(phi)/cosStdPar]; })
+      .translate([svg.width/2,svg.height/2])
+      .scale(projectionScale);
+
+    //The corresponding path function creation for this projection
+    var path = d3.geoPath().projection(projection);
+
+    //svg.maps will contain the 2 maps for rotation
+
+    svg.maps = svg.svg.append("g");
+
+    //svg.map will contain the first initial map
+
+    svg.map = svg.maps.append("g");
+
+    //stroke-width controlled by javascript to adapt it to the current scale
+    //0.3 when map scale = 100
+
+    svg.strokeWidth = 0.003*projectionScale;
+    svg.maps.style("stroke-width", svg.strokeWidth);
+
+    //color for test
+
+    var f = colorEval();
+
+
     d3.json(urlJson,function(error, worldmap) {
 
         //test json conformity
+
         if (typeof worldmap === "undefined" || error) {
             noData(div, svg,mydiv);
             return false;
         }
-
-        //finding/computing the div dimensions
-
-        var divWidth = Math.max(svg.margin.left + svg.margin.right + 1,parseInt(div.style("width"),10)),
-          divHeight = Math.max(svg.margin.bottom + svg.margin.top + 1,window.innerHeight);
-
-
-        //div height instantiated
-
-        div.style("height",divHeight + "px");
-
-        //Some pre-computation to find the dimensions of the map (with a determined height/width ratio
-        // for a given standard latitude)
-
-        //Maximum potential width & height the map will have
-
-        svg.width = divWidth - svg.margin.left - svg.margin.right;
-        svg.height = divHeight - svg.margin.bottom - svg.margin.top;
-
-        //The wished standard latitude for a cylindrical equal-area projection (in degree)
-        //37.5: Hobo-Dyers projection, 45: Gall-Peters projection
-
-        var standardParallelDeg = 37.5;
-
-        //Conversion in radians and cosinus precomputation
-
-        var standardParallelRad = standardParallelDeg*2*Math.PI/360;
-        var cosStdPar = Math.cos(standardParallelRad);
-
-        //evaluation of the map width & height if the projection scale = 1, then homothetic zooming.
-
-        svg.mapDefaultWidth = 2*Math.PI*cosStdPar;
-        svg.mapDefaultHeight = 2/cosStdPar;
-
-        //evaluation of the optimal scale coefficient for the chosen format
-
-        var projectionScale = Math.min(svg.width/svg.mapDefaultWidth,svg.height/svg.mapDefaultHeight);
-
-        //update of the correct width & height
-
-        svg.width = projectionScale*svg.mapDefaultWidth;
-        svg.height = projectionScale*svg.mapDefaultHeight;
-
-        //dimensions of the root svg (= with margins)
-
-        svg.attr("width", svg.width + svg.margin.top + svg.margin.bottom + "px")
-          .attr("height", svg.height + svg.margin.left + svg.margin.right + "px");
-
-        //dimensions of the svg map container (= without margins)
-
-        svg.svg = svg.append("svg").attr("x",svg.margin.left).attr("y",svg.margin.top).attr("width",svg.width)
-          .attr("height",svg.height).classed("geometricPrecision",true);
-
-        //A rect is appended first (= background) with the size of svg.svg as a sea representation
-
-        svg.backgroundRect = svg.svg.append("rect").attr("width",svg.width).attr("height",svg.height).classed("backgroundSea",true);
-
-        //Computation of the cylindrical equal-area projection with the given standard latitude and
-        // the precomputed scale projectionScale
-
-        var projection = d3.geo.cylindricalEqualArea()
-          .parallel(standardParallelDeg)
-          .translate([svg.width/2,svg.height/2])
-          .scale(projectionScale);
-
-        //The corresponding path for the projection
-        var path = d3.geo.path().projection(projection);
-
-        //svg.maps will contain the 2 maps for rotation
-
-        svg.maps = svg.svg.append("g");
-
-        //svg.map will contain the first initial map
-
-        svg.map = svg.maps.append("g");
-
-        //stroke-width controlled by javascript to adapt it to the current scale
-        //0.3 when map scale = 100
-
-        svg.strokeWidth = 0.003*projectionScale;
-        svg.maps.style("stroke-width", svg.strokeWidth);
-
-        //color for test
-        var f = colorEval();
-
 
         //the binded data, containing the countries info and topology
 
@@ -3505,6 +3506,30 @@ function createMap(div,svg,urlJson,mydiv){
 
 /************************************************************************************************************
  *
+ *
+ *
+ ************************************************************************************************************/
+
+ function getJsonMap(){
+
+}
+
+/************************************************************************************************************
+ *
+ ***********************************************************************************************************/
+
+function updateTransform(selection,transform){
+
+    var zoom = selection._groups[0][0].__zoom;
+    zoom.k = transform.k;
+    zoom.x = transform.x;
+    zoom.y = transform.y;
+
+}
+
+
+/************************************************************************************************************
+ *
  * addResizeMap
  *
  * @param div: the container div
@@ -3535,6 +3560,9 @@ function addResizeMap(div,svg,mydiv){
     }
 
     d3.select(window).on("resize."+mydiv,function(){
+
+
+
 
         //initial height kept for future computation of the resize augmentation
 
@@ -3570,19 +3598,20 @@ function addResizeMap(div,svg,mydiv){
         //update of svg.ratioProjectionScale and computation of the map total effective scaling
 
         svg.ratioProjectionScale *= coefScaling;
-        scaleTotal = svg.ratioProjectionScale * svg.zoom.scale();
+        scaleTotal = svg.ratioProjectionScale * svg.transform.k;
 
         //update of the translation vector
 
-        svg.translate[0] *= coefScaling;
-        svg.translate[1] *= coefScaling;
+        svg.transform.x *= coefScaling;
+        svg.transform.y *= coefScaling;
 
         //update of the internal zoom translation vector
-        svg.zoom.translate(svg.translate);
+
+        updateTransform(svg.svg,svg.transform);
 
         //the modifications are performed
 
-        svg.maps.attr("transform","matrix(" +  scaleTotal + ", 0, 0, " + scaleTotal + ", " + svg.translate[0] + ", " + svg.translate[1] + ")");
+        svg.maps.attr("transform","matrix(" +  scaleTotal + ", 0, 0, " + scaleTotal + ", " + svg.transform.x + ", " + svg.transform.y + ")");
 
         //update of the sea rect
 
@@ -3592,6 +3621,7 @@ function addResizeMap(div,svg,mydiv){
 
         svg.strokeDash *= coefScaling;
         svg.strokeWidth *= coefScaling;
+
 
     })
 
@@ -3622,41 +3652,34 @@ function addZoomMap(svg){
         svg.ratioProjectionScale = 1;
     }
 
-    svg.translate = [0,0];
-    var e, widthScale, scaleTotal, dashValue;
+    svg.transform = {k:1,x:0,y:0};
+    var widthScale, scaleTotal, dashValue;
 
-    svg.zoom = d3.behavior.zoom().size([svg.width,svg.height]).scaleExtent([1,20]).on("zoom",function(){
+    svg.zoom = d3.zoom().scaleExtent([1,20]).on("zoom",function(){
 
         //computation of useful values
 
-        e = d3.event;
-        widthScale = svg.width*e.scale;
-        scaleTotal = e.scale*svg.ratioProjectionScale;
+        svg.transform = d3.event.transform;
+
+        widthScale = svg.width*svg.transform.k;
+        scaleTotal = svg.transform.k*svg.ratioProjectionScale;
         dashValue = svg.strokeDash/scaleTotal;
 
 
         //Evaluation of effective translation vectors
-        //for "rotation" of the planisphere, svg.translate[0] should always be in the [0,-widthScale] range.
+        //for "rotation" of the planisphere, svg.transform.x should always be in the [0,-widthScale] range.
 
-        svg.translate[0] = e.translate[0] - Math.ceil(e.translate[0]/widthScale)*widthScale;
-        svg.translate[1] = Math.min(0, Math.max(e.translate[1],svg.height - e.scale*svg.height));
+        svg.transform.x = svg.transform.x - Math.ceil(svg.transform.x/widthScale)*widthScale;
+        svg.transform.y = Math.min(0, Math.max(svg.transform.y,svg.height - svg.transform.k*svg.height));
 
         //zoom and translation are performed
 
-        svg.maps.attr("transform","matrix(" + scaleTotal + ", 0, 0, " + scaleTotal + ", " + svg.translate[0] + ", " + svg.translate[1] + ")");
+        svg.maps.attr("transform","matrix(" + scaleTotal + ", 0, 0, " + scaleTotal + ", " + svg.transform.x + ", " + svg.transform.y + ")");
 
         //styling update, for keeping the same visual effect
 
         svg.maps.style("stroke-width",svg.strokeWidth/scaleTotal);
         svg.maps.selectAll(".interior").style("stroke-dasharray",dashValue + "," + dashValue)
-
-
-    }).on("zoomend",function(){
-
-        //start of the event, update of the internal translation vector with the actual one
-
-        svg.zoom.translate(svg.translate);
-
 
 
     });
@@ -3697,5 +3720,5 @@ d3.select(window).on("keydown",function (){
 //drawChart("/dynamic/netTop10CountryTraffic.json?dd=2016-06-20%2011%3A44&df=2016-06-23%2011%3A44&dh=2", "Graph");
 //drawChart("./netTop10appTraffic.json", "Graph");
 //drawChart("./netTop10NbExtHosts.json", "Graph");
-//drawChart("./netNbLocalHosts.json", "Graph");
-drawChart("worldmap.json","Graph");
+drawChart("./netNbLocalHosts.json", "Graph");
+//drawChart("worldmap.json","Graph");
