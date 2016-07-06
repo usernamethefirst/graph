@@ -2313,6 +2313,7 @@ function redrawHisto2DStackSimple(div,svg){
           .startAngle(function(d){return d.startAngle})
           .endAngle(function(d){return d.endAngle});
 
+        
         svg.popup.pieChart.g.selectAll("path").attr("d",arc);
         svg.popup.pieChart.g.selectAll("text").attr("transform",function(d){
             var midAngle = (d.endAngle + d.startAngle)/2;
