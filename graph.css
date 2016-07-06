@@ -2,6 +2,12 @@
 {
     fill: none;
     stroke: #000;
+    font-family: 'Open Sans';
+    font-style: normal;
+    font-variant: normal;
+    font-weight: 300;
+    font-size: 15px;
+
 }
 
 .rectSelec {
@@ -110,7 +116,7 @@ td:nth-of-type(2){
     stroke-width: 1;
 }
 
-.part{
+.part path{
 
     stroke-width: 1;
     stroke: #fff6f6;
@@ -130,16 +136,8 @@ td:nth-of-type(2){
 }
 .diagram{
     display: inline-block;
-    font-family: 'Open Sans';
-    font-style: normal;
-    font-variant: normal;
 }
 
-
-.font1{
-    font-weight: 300;
-
-}
 
 
 .font2{
