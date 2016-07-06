@@ -2,7 +2,7 @@ function drawChart(urlJson, mydiv) {
 
     var div = d3.select('#' + mydiv);
     var svg = div.select("svg");
-    svg.margin = {top: 50, right: 50, bottom: 50, left: 60, zero:30};
+    svg.margin = {top: 50, right: 50, bottom: 50, left: 60, zero:28};
 
 
     whichCreationFunction(urlJson)(div,svg,urlJson,mydiv);
@@ -101,12 +101,12 @@ function createHisto2DStackDouble(div,svg,urlJson,mydiv){
         svg.height = divHeight - svg.margin.bottom - svg.margin.top;
 
 
-        svg.x = d3.scale.linear()
+        svg.x = d3.scaleLinear()
           .range([0, svg.width]);
 
-        svg.yInput = d3.scale.linear().clamp(true);
+        svg.yInput = d3.scaleLinear().clamp(true);
 
-        svg.yOutput = d3.scale.linear().clamp(true);
+        svg.yOutput = d3.scaleLinear().clamp(true);
 
         svg.svg = svg.append("svg").attr("x", svg.margin.left).attr("y", svg.margin.top).attr("width", svg.width).attr("height", svg.height);
 
@@ -400,7 +400,7 @@ function createHisto2DStackDouble(div,svg,urlJson,mydiv){
                   .attr("stroke", col4).attr("fill", col1)
                   .transition().duration(1000)
                   .attr("stroke", col3).attr("fill", col2)
-                  .each("end", doitagain);
+                  .on("end", doitagain);
             })()
         }
 
@@ -451,8 +451,9 @@ function createHisto2DStackDouble(div,svg,urlJson,mydiv){
 
 
             table.transition().ease(easeFct(3)).tween("scrolltoptween", function () {
+                var tab = this;
                 return function (t) {
-                    this.scrollTop = tableScrollTop * (1 - t) + t * scrollEnd;
+                    tab.scrollTop = tableScrollTop * (1 - t) + t * scrollEnd;
                 };
             });
 
@@ -483,8 +484,9 @@ function createHisto2DStackDouble(div,svg,urlJson,mydiv){
 
 
             table.transition().ease(easeFct(3)).tween("scrolltoptween", function () {
+                var tab = this;
                 return function (t) {
-                    this.scrollTop = tableScrollTop * (1 - t) + t * scrollEnd;
+                    tab.scrollTop = tableScrollTop * (1 - t) + t * scrollEnd;
                 };
             });
 
@@ -517,13 +519,11 @@ function createHisto2DStackDouble(div,svg,urlJson,mydiv){
         svg.axisx = svg.append("g")
           .attr("class", "axis")
           .attr('transform', 'translate(' + [svg.margin.left, svg.heightOutput + svg.margin.top] + ")");
-        svg.axisx.append("rect").classed("rectAxis", true).attr("width", svg.width).attr("height", svg.margin.zero);
+        svg.axisx.append("rect").classed("rectAxis", true).attr("width", svg.width).attr("height", svg.margin.zero -1).attr("y",0.5);
 
-        svg.axisx.call(d3.svg.axis()
-          .scale(svg.x)
-          .orient("bottom"));
+        svg.axisx.call(d3.axisBottom(svg.x));
         svg.heightTick = svg.axisx.select(".tick").select("line").attr("y2");
-        svg.axisx.path = svg.axisx.append("path").attr("d", "M0," + (svg.margin.zero - svg.heightTick) + "V" + svg.margin.zero + "H" + svg.width + "V" + (svg.margin.zero - svg.heightTick))
+        svg.axisx.path = svg.axisx.append("path").attr("d", "M0.5," + (svg.margin.zero - svg.heightTick) + "V" + (svg.margin.zero - 0.5)+ "H" + (svg.width + 0.5)+ "V" + (svg.margin.zero - svg.heightTick))
 
         svg.axisx.selectAll(".tick").classed("addedLine", true).append("line")
           .attr("x1", 0)
@@ -539,23 +539,15 @@ function createHisto2DStackDouble(div,svg,urlJson,mydiv){
             }
         });
 
-        svg.axisyInput = svg.append("g").attr('transform', 'translate(' + [svg.margin.left, svg.margin.top] + ')')
-          .attr("class", "axis");
-        svg.axisyInput.call(d3.svg.axis()
-          .scale(svg.yInput)
-          .orient("left")
-        );
 
-        niceTicks(svg.axisyInput.selectAll(".tick"));
+        svg.axisyInput = svg.append("g").attr('transform', 'translate(' + [svg.margin.left, svg.margin.top - 1] + ')')
+          .attr("class", "axis");
+        svg.axisyInput.call(d3.axisLeft(svg.yInput));
 
 
         svg.axisyOutput = svg.append("g").attr('transform', 'translate(' + [svg.margin.left, svg.margin.top] + ')')
           .attr("class", "axis");
-        svg.axisyOutput.call(d3.svg.axis()
-          .scale(svg.yOutput)
-          .orient("left"));
-
-        niceTicks(svg.axisyOutput.selectAll(".tick"));
+        svg.axisyOutput.call(d3.axisLeft(svg.yOutput));
 
 
         gridDoubleGraph(svg);
@@ -573,13 +565,13 @@ function createHisto2DStackDouble(div,svg,urlJson,mydiv){
         svg.side = 0.75 * Math.min(svg.height, svg.width);
         svg.pieside = 1 * svg.side;
         div.overlay = div.append("div").classed("overlay", true).style("display", "none").style("width", (svg.width + svg.margin.left + svg.margin.right) + "px");
-        svg.popup = div.append("div").classed("popup", true).style({
-            "width": svg.side + "px",
-            "height": svg.side + "px",
-            "display": "none",
-            "left": ((svg.width - svg.side) / 2 + svg.margin.left) + "px",
-            "top": ((svg.height - svg.side) / 2 + svg.margin.top) + "px"
-        });
+        svg.popup = div.append("div").classed("popup", true)
+          .style("width", svg.side + "px")
+          .style("height", svg.side + "px")
+          .style("display", "none")
+          .style("left", ((svg.width - svg.side) / 2 + svg.margin.left) + "px")
+          .style("top", ((svg.height - svg.side) / 2 + svg.margin.top) + "px");
+
         svg.popup.pieChart = null;
 
         svg.timer = null;
@@ -625,18 +617,18 @@ function createHisto2DStackDouble(div,svg,urlJson,mydiv){
         //zoom
 
 
-        svg.newX = d3.scale.linear().range(svg.x.range()).domain(svg.x.domain());
-        svg.newYOutput = d3.scale.linear().range(svg.yOutput.range()).domain(svg.yOutput.domain());
-        svg.newYInput = d3.scale.linear().range(svg.yInput.range()).domain(svg.yInput.domain());
+        svg.newX = d3.scaleLinear().range(svg.x.range()).domain(svg.x.domain());
+        svg.newYOutput = d3.scaleLinear().range(svg.yOutput.range()).domain(svg.yOutput.domain());
+        svg.newYInput = d3.scaleLinear().range(svg.yInput.range()).domain(svg.yInput.domain());
 
 
         addZoomDouble(svg, updateHisto1DStackDouble);
         d3.select(window).on("resize." + mydiv, function () {
             console.log("resize");
-            redrawHisto2DStackDouble(div, svg);
+          //  redrawHisto2DStackDouble(div, svg);
         });
 
-        hideShowValuesDouble(svg, trSelec, selectionIn, selectionOut, xlength)
+        //hideShowValuesDouble(svg, trSelec, selectionIn, selectionOut, xlength)
 
     });
 
@@ -978,8 +970,9 @@ function createHisto2DStackSimple(div,svg,urlJson,mydiv){
 
 
             table.transition().ease(easeFct(3)).tween("scrolltoptween", function () {
+                var tab = this;
                 return function (t) {
-                    this.scrollTop = tableScrollTop * (1 - t) + t * scrollEnd;
+                    tab.scrollTop = tableScrollTop * (1 - t) + t * scrollEnd;
                 };
             });
 
@@ -1026,8 +1019,6 @@ function createHisto2DStackSimple(div,svg,urlJson,mydiv){
         svg.axisy = svg.append("g").attr('transform', 'translate(' + [svg.margin.left, svg.margin.top] + ')')
           .attr("class", "axis");
         svg.axisy.call(d3.axisLeft(svg.y));
-
-        //niceTicks(svg.axisy.selectAll(".tick"));
 
         gridSimpleGraph(svg);
 
@@ -1771,9 +1762,7 @@ function updateHisto1DStackDouble(svg){
       .attr("width", dataWidth);
 
 
-    svg.axisx.call(d3.svg.axis()
-        .scale(svg.newX)
-        .orient("bottom"));
+    svg.axisx.call(d3.axisBottom(svg.newX));
 
     svg.axisx.selectAll(".tick").filter(function(){return !d3.select(this).classed("addedLine");}).classed("addedLine",true).append("line")
         .attr("x1",0)
@@ -1789,19 +1778,13 @@ function updateHisto1DStackDouble(svg){
         }
     });
 
-    svg.axisx.attr("transform","matrix(1, 0, 0, 1," + svg.margin.left+ "," + Math.min(svg.margin.top + svg.height,Math.max(svg.margin.top - svg.margin.zero,(svg.heightOutput)*svg.scale*svg.scaley +svg.margin.top + svg.translate[1])) + ")" );
+    svg.axisx.attr("transform","matrix(1, 0, 0, 1," + svg.margin.left+ "," + Math.min(svg.margin.top + svg.height,Math.max(svg.margin.top - svg.margin.zero,(svg.heightOutput)*svg.transform.k*svg.scaley +svg.margin.top + svg.transform.y)) + ")" );
 
 
-    svg.axisyOutput.call(d3.svg.axis()
-        .scale(svg.newYOutput)
-        .orient("left"));
+    svg.axisyOutput.call(d3.axisLeft(svg.newYOutput));
 
 
-
-
-    svg.axisyInput.call(d3.svg.axis()
-        .scale(svg.newYInput)
-        .orient("left"));
+    svg.axisyInput.call(d3.axisLeft(svg.newYInput));
 
 
     gridDoubleGraph(svg);
@@ -1842,14 +1825,14 @@ function addZoomDouble(svg,updateFunction){
 
     //Scales to update the current view (if not already implemented for specific reasons)
     if(svg.newX == undefined){
-        svg.newX = d3.scale.linear().range(svg.x.range()).clamp(true).domain(svg.x.domain());
+        svg.newX = d3.scaleLinear().range(svg.x.range()).clamp(true).domain(svg.x.domain());
     }
     if(svg.newYOutput == undefined) {
-        svg.newYOutput = d3.scale.linear().range(svg.yOutput.range()).clamp(true).domain(svg.yOutput.domain());
+        svg.newYOutput = d3.scaleLinear().range(svg.yOutput.range()).clamp(true).domain(svg.yOutput.domain());
     }
 
     if(svg.newYInput == undefined) {
-        svg.newYInput = d3.scale.linear().range(svg.yInput.range()).clamp(true).domain(svg.yInput.domain());
+        svg.newYInput = d3.scaleLinear().range(svg.yInput.range()).clamp(true).domain(svg.yInput.domain());
     }
 
     //Selection rectangle for zooming (if not already implemented for better display control)
@@ -1862,127 +1845,119 @@ function addZoomDouble(svg,updateFunction){
     var startCoord = [NaN,NaN];
     var mouseCoord;
 
-
-    svg.scale = 1;
     svg.scalex = 1;
     svg.scaley = 1;
 
     //coordinates within the x&y ranges frames, points towards the top left corner of the actual view
     //workaround for the zoom.translate([0,0]) which doesn't work as intended.
-    svg.translate = [0,0];
+    svg.transform = {k:1,x:0,y:0};
 
     //Vector pointing towards the top left corner of the current view in the x&y ranges frame
     //Calculated from svg.translate
     var actTranslate = [0,0];
-    var lastTranslate = [];
 
     //to stop triggering animations during rectselec
     var rectOverlay = svg.frame.append("rect").attr("x",0).attr("y",0)
       .attr("height",svg.height).attr("width",0).attr("fill-opacity",0).classed("rectOverlay",true);
 
+    var event = {k:1,x:0,y:0};
 
     var calcCoord = [];
 
 
     svg.heightData = svg.height - svg.margin.zero;
 
-    svg.zoom = d3.behavior.zoom().scaleExtent([1, Infinity]).on("zoom", function () {
+
+
+    svg.zoom = d3.zoom().scaleExtent([1, Infinity]).on("zoom", function () {
 
           rectOverlay.attr("width",svg.width);
 
-
-          mouseCoord = d3.mouse(svg.frame.node());
-
-
             if(isNaN(startCoord[0])){
 
-                var e = d3.event;
-                if(e.scale == svg.scale){
+                var lastEvent = {k:event.k,x:event.x,y:event.y};
+                event = d3.event.transform;
+
+                if(event.k == lastEvent.k){
                     //case: translation
 
                     //Avoid some "false" executions
-                    if(e.scale != 1){
+                    if(event.k  != 1){
                         svg.style("cursor", "move");
 
                     }
 
-                    console.log("e.translate " + e.translate);
-
-
                     //actualization of the translation vector (translate) within the x&y ranges frames
-                    svg.translate[0] = Math.min(0, Math.max(e.translate[0],svg.width - e.scale*svg.scalex*svg.width ));
-                    svg.translate[1] = Math.min(0, Math.max(e.translate[1],svg.height - e.scale*svg.scaley*svg.heightData - svg.margin.zero));
-
+                    svg.transform.x = Math.min(0, Math.max(event.x,svg.width - event.k*svg.scalex*svg.width));
+                    svg.transform.y = Math.min(0, Math.max(event.y,svg.height - event.k*svg.scaley*svg.heightData - svg.margin.zero));
 
                 }else{
 
                     //case: zoom
-
-
+                    var coefScale = event.k/lastEvent.k;
 
                     //Retrieve the cursor coordinates. Quick dirty fix to accept double click while trying to minimize side effects.
-                    calcCoord[0] = -svg.margin.left-(e.translate[0] -lastTranslate[0]*e.scale/svg.scale)/(e.scale/svg.scale-1);
-                    calcCoord[1] = -svg.margin.top-(e.translate[1] -lastTranslate[1]*e.scale/svg.scale)/(e.scale/svg.scale-1);
-                    lastTranslate = e.translate;
+                    calcCoord[0] = -svg.margin.left-(event.x -lastEvent.x*coefScale)/(coefScale -1);
+                    calcCoord[1] = -svg.margin.top-(event.y -lastEvent.y*coefScale)/(coefScale -1);
 
-                    console.log(mouseCoord);
-                    console.log(calcCoord);
+
+                    var mouse = d3.mouse(svg.svg.node());
+                    console.log("x: " + (calcCoord[0] - mouse[0]).toFixed(5) + " y: " + (calcCoord[1] - mouse[1]).toFixed(5));
 
                     var lastScalex = svg.scalex;
                     var lastScaley = svg.scaley;
 
                     //Actualization of the local scales
-                    svg.scalex = Math.max(1/e.scale, svg.scalex);
-                    svg.scaley = Math.max(1/e.scale, svg.scaley);
+                    svg.scalex = Math.max(1/event.k, svg.scalex);
+                    svg.scaley = Math.max(1/event.k, svg.scaley);
 
                     //Evaluation of the scale changes by axis
-                    var xrel = (svg.scalex * e.scale)/(svg.scale * lastScalex);
-                    var yrel = (svg.scaley * e.scale)/(svg.scale * lastScaley);
+                    var xrel = coefScale*svg.scalex/lastScalex;
+                    var yrel = coefScale*svg.scaley/lastScaley;
 
                     //console.log("zoom " + svg.translate + " e.t " + e.translate);
 
 
                     //actualization of the translation vector with the scale change
-                    svg.translate[0]*= xrel;
+                    svg.transform.x*= xrel;
 
                     //actualization of the translation vector (translate) to the top left corner of our view within the standard x&y.range() frame
                     //If possible, the absolute location pointed by the cursor stay the same
                     //Since zoom.translate(translate) doesn't work immediately but at the end of all consecutive zoom actions,
                     //we can't rely on d3.event.translate for smooth zooming and have to separate zoom & translation
-                    svg.translate[0] = Math.min(0, Math.max(svg.translate[0] - calcCoord[0]*(xrel - 1),svg.width - e.scale*svg.scalex*svg.width ));
+                    svg.transform.x = Math.min(0, Math.max(svg.transform.x - calcCoord[0]*(xrel - 1),svg.width - event.k*svg.scalex*svg.width ));
 
-                    var oldMouse = calcCoord[1] - svg.translate[1];
+                    var oldMouse = calcCoord[1] - svg.transform.y;
                     
-                    var newMouse = oldMouse* yrel + Math.min(svg.margin.zero, Math.max(0,oldMouse - svg.heightOutput*svg.scale*lastScaley))*(1 - yrel);
-                    svg.translate[1] = oldMouse - newMouse + svg.translate[1];
-                    svg.translate[1] = Math.min(0, Math.max(svg.translate[1],svg.height - e.scale*svg.scaley*svg.heightData - svg.margin.zero));
+                    var newMouse = oldMouse* yrel + Math.min(svg.margin.zero, Math.max(0,oldMouse - svg.heightOutput*svg.transform.k*lastScaley))*(1 - yrel);
+                    svg.transform.y = oldMouse - newMouse + svg.transform.y;
+                    svg.transform.y = Math.min(0, Math.max(svg.transform.y,svg.height - event.k*svg.scaley*svg.heightData - svg.margin.zero));
 
                     //console.log("newmouse :" + newMouse + " oldMouse :" + oldMouse);
 
-                    svg.scale = e.scale;
+                    svg.transform.k = event.k;
 
                     //console.log(" lastScalex " + lastScalex + " scalex " + svg.scalex + " lastScaley " + lastScaley + " scaley " + svg.scaley + " xrel " + xrel + " yrel " + yrel);
                 }
 
 
-                svg.zoom.translate(svg.translate);
 
+                actTranslate[0] = -svg.transform.x/(svg.scalex*event.k);
+                actTranslate[1] = -svg.transform.y/(svg.scaley*event.k);
 
-                actTranslate[0] = -svg.translate[0]/(svg.scalex*e.scale);
-                actTranslate[1] = -svg.translate[1]/(svg.scaley*e.scale);
 
 
                 //actualization of the current (newX&Y) scales domains
-                svg.newX.domain([ svg.x.invert(actTranslate[0]), svg.x.invert(actTranslate[0] + svg.width/(e.scale*svg.scalex)) ]);
+                svg.newX.domain([ svg.x.invert(actTranslate[0]), svg.x.invert(actTranslate[0] + svg.width/(svg.transform.k*svg.scalex)) ]);
 
-                svg.newYOutput.range([Math.min(svg.height,Math.max(0,svg.heightOutput*svg.scale*svg.scaley+svg.translate[1])),0]);
-                svg.newYInput.range([Math.min(svg.height,Math.max(0,svg.heightOutput*svg.scale*svg.scaley+svg.translate[1] + svg.margin.zero)),svg.height]);
+                svg.newYOutput.range([Math.min(svg.height,Math.max(0,svg.heightOutput*svg.transform.k*svg.scaley+svg.transform.y)),0]);
+                svg.newYInput.range([Math.min(svg.height,Math.max(0,svg.heightOutput*svg.transform.k*svg.scaley+svg.transform.y + svg.margin.zero)),svg.height]);
 
-                svg.newYOutput.domain([svg.yOutput.invert(svg.height/(svg.scale*svg.scaley) + actTranslate[1]),
+                svg.newYOutput.domain([svg.yOutput.invert(svg.height/(svg.transform.k*svg.scaley) + actTranslate[1]),
                     svg.yOutput.invert(actTranslate[1])]);
 
-                svg.newYInput.domain([svg.yInput.invert(actTranslate[1]  + (1-1/(svg.scale*svg.scaley))*svg.margin.zero),
-                    svg.yInput.invert(actTranslate[1] + (1-1/(svg.scale*svg.scaley))*svg.margin.zero + svg.height/(svg.scale*svg.scaley))]);
+                svg.newYInput.domain([svg.yInput.invert(actTranslate[1]  + (1-1/(svg.transform.k*svg.scaley))*svg.margin.zero),
+                    svg.yInput.invert(actTranslate[1] + (1-1/(svg.transform.k*svg.scaley))*svg.margin.zero + svg.height/(svg.transform.k*svg.scaley))]);
 
 
 
@@ -1991,6 +1966,8 @@ function addZoomDouble(svg,updateFunction){
 
 
             } else {
+
+                mouseCoord = d3.mouse(svg.frame.node());
 
                 //Drawing of the selection rect
                 console.log("carré mousecoord " + mouseCoord + " start " + startCoord );
@@ -2007,10 +1984,10 @@ function addZoomDouble(svg,updateFunction){
 
         })
 
-        .on("zoomstart",function () {
+        .on("start",function () {
             clearTimeout(svg.timer);
-            console.log("translate1 " + svg.translate[1] );
-            lastTranslate = svg.translate;
+            event = {k:svg.transform.k,x:svg.transform.x,y:svg.transform.y};
+
             if(isShiftKeyDown){
                 console.log("key is down start");
                 startCoord = d3.mouse(svg.frame.node());
@@ -2021,12 +1998,11 @@ function addZoomDouble(svg,updateFunction){
             }
 
         })
-        .on("zoomend", function () {
-
+        .on("end", function () {
 
             rectOverlay.attr("width",0);
 
-            if(!isNaN(startCoord[0])){
+            if(!isNaN(startCoord[0]) && !isNaN(mouseCoord[0])){
 
 
                 svg.selec.attr("width",  0)
@@ -2039,8 +2015,8 @@ function addZoomDouble(svg,updateFunction){
 
 
                 var marginIncl = Math.max(0,ymax - ymin + svg.margin.zero -
-                    Math.max(svg.heightOutput*svg.scale*svg.scaley + svg.translate[1] + svg.margin.zero,ymax)
-                    + Math.min(ymin,svg.heightOutput*svg.scale*svg.scaley + svg.translate[1]));
+                    Math.max(svg.heightOutput*svg.transform.k*svg.scaley + svg.transform.y + svg.margin.zero,ymax)
+                    + Math.min(ymin,svg.heightOutput*svg.transform.k*svg.scaley + svg.transform.y));
 
                 var sqheight = ymax - ymin - marginIncl;
 
@@ -2050,63 +2026,67 @@ function addZoomDouble(svg,updateFunction){
 
                 if(sqwidth != 0 && sqheight != 0){
 
-                    var lastScale = svg.scale;
+                    var lastScale = svg.transform.k;
                     var lastScalex = svg.scalex;
                     var lastScaley = svg.scaley;
 
 
 
                     //Repercussion on the translate vector
-                    svg.translate[0] = svg.translate[0] - xmin;
-                    
-                    svg.translate[1] = svg.translate[1] - ymin;
-                    //Evaluation of the total scale change from the beginning, by axis.
-                    svg.scalex = svg.width*svg.scale*svg.scalex/sqwidth;
+                    svg.transform.x -= xmin;
+                    svg.transform.y -= ymin;
 
-                    svg.scaley = (svg.height-marginIncl)*svg.scale*svg.scaley/sqheight;
+                    //Evaluation of the total scale change from the beginning, by axis.
+                    svg.scalex = svg.width*svg.transform.k*svg.scalex/sqwidth;
+
+                    svg.scaley = (svg.height-marginIncl)*svg.transform.k*svg.scaley/sqheight;
 
                     //Evaluation of the global scale
-                    svg.scale = Math.max(svg.scalex,svg.scaley);
+                    svg.transform.k = Math.max(svg.scalex,svg.scaley);
 
                     //Evaluation of the local scale change (with 0<svg.scalen<=1 &&
                     // total scale change for n axis == svg.scalen*svg.scale >=1)
-                    svg.scalex = svg.scalex/svg.scale;
-                    svg.scaley = svg.scaley/svg.scale;
+                    svg.scalex = svg.scalex/svg.transform.k;
+                    svg.scaley = svg.scaley/svg.transform.k;
+
 
                     //Evaluation of the ratio by axis between the new & old scales
-                    var xrel = (svg.scalex * svg.scale)/(lastScale * lastScalex);
-                    var yrel = (svg.scaley * svg.scale)/(lastScale * lastScaley);
+                    var xrel = (svg.scalex * svg.transform.k)/(lastScale * lastScalex);
+                    var yrel = (svg.scaley * svg.transform.k)/(lastScale * lastScaley);
+
                     //Actualization of the translate vector
-                    svg.translate[0]*= xrel;
-                    svg.translate[1] = svg.translate[1]*yrel + Math.max(-svg.margin.zero,Math.min(svg.translate[1] + lastScaley*lastScale*svg.heightOutput,0))*(1-yrel);
+                    svg.transform.x*= xrel;
+                    svg.transform.y = svg.transform.y*yrel + Math.max(-svg.margin.zero,Math.min(svg.transform.y + lastScaley*lastScale*svg.heightOutput,0))*(1-yrel);
 
 
-                    actTranslate[1] = -svg.translate[1]/(svg.scaley*svg.scale);
+                    actTranslate[1] = -svg.transform.y/(svg.scaley*svg.transform.k);
 
 
                     //actualization of the current (newX&Y) scales domains
                     svg.newX.domain([ svg.newX.invert(xmin), svg.newX.invert(xmin + sqwidth)]);
-                    svg.newYOutput.range([Math.min(svg.height,Math.max(0,svg.heightOutput*svg.scale*svg.scaley+svg.translate[1])),0]);
-                    svg.newYInput.range([Math.min(svg.height,Math.max(0,svg.heightOutput*svg.scale*svg.scaley+svg.translate[1] + svg.margin.zero)),svg.height]);
+                    svg.newYOutput.range([Math.min(svg.height,Math.max(0,svg.heightOutput*svg.transform.k*svg.scaley+svg.transform.y)),0]);
+                    svg.newYInput.range([Math.min(svg.height,Math.max(0,svg.heightOutput*svg.transform.k*svg.scaley+svg.transform.y + svg.margin.zero)),svg.height]);
 
-                    svg.newYOutput.domain([svg.yOutput.invert(svg.height/(svg.scale*svg.scaley) + actTranslate[1]),
+                    svg.newYOutput.domain([svg.yOutput.invert(svg.height/(svg.transform.k*svg.scaley) + actTranslate[1]),
                         svg.yOutput.invert(actTranslate[1])]);
 
-                    svg.newYInput.domain([svg.yInput.invert(actTranslate[1]  + (1-1/(svg.scale*svg.scaley))*svg.margin.zero),
-                        svg.yInput.invert(actTranslate[1] + (1-1/(svg.scale*svg.scaley))*svg.margin.zero + svg.height/(svg.scale*svg.scaley))]);
+                    svg.newYInput.domain([svg.yInput.invert(actTranslate[1]  + (1-1/(svg.transform.k*svg.scaley))*svg.margin.zero),
+                        svg.yInput.invert(actTranslate[1] + (1-1/(svg.transform.k*svg.scaley))*svg.margin.zero + svg.height/(svg.transform.k*svg.scaley))]);
 
 
                     updateFunction(svg);
                 }
 
-                //update of the zoom behavior
-                svg.zoom.scale(svg.scale);
-                svg.zoom.translate(svg.translate);
-
-                startCoord = [NaN,NaN];
-
-
             }
+
+            //update of the zoom behavior
+            svg._groups[0][0].__zoom.k =svg.transform.k;
+            svg._groups[0][0].__zoom.x =svg.transform.x;
+            svg._groups[0][0].__zoom.y =svg.transform.y;
+
+            startCoord = [NaN,NaN];
+            mouseCoord = [NaN,NaN];
+
             svg.style("cursor","auto");
 
 
@@ -2313,7 +2293,7 @@ function redrawHisto2DStackSimple(div,svg){
           .startAngle(function(d){return d.startAngle})
           .endAngle(function(d){return d.endAngle});
 
-        
+
         svg.popup.pieChart.g.selectAll("path").attr("d",arc);
         svg.popup.pieChart.g.selectAll("text").attr("transform",function(d){
             var midAngle = (d.endAngle + d.startAngle)/2;
@@ -2825,6 +2805,7 @@ function addZoomSimple(svg,updateFunction){
     var actTranslate = [0,0];
 
     var event = {k:1,x:0,y:0};
+    var calcCoord =[];
 
     svg.zoom = d3.zoom().scaleExtent([1, Infinity]).on("zoom", function () {
 
@@ -2852,7 +2833,6 @@ function addZoomSimple(svg,updateFunction){
               }else{
 
                   //case: zoom
-                  var calcCoord =[];
                   var coefScale = event.k/lastEvent.k;
                   //Retrieve the cursor coordinates. Quick dirty fix to accept double click while trying to minimize side effects.
                   calcCoord[0] = -svg.margin.left-(event.x -lastEvent.x*coefScale)/(coefScale -1);
@@ -3268,8 +3248,6 @@ function updateCurve(svg){
 
     svg.axisy.call(d3.axisLeft(svg.newY));
 
-    niceTicks(svg.axisy);
-
     legendCurveAxisX(svg);
 
     gridSimpleGraph(svg,true);
@@ -3362,7 +3340,8 @@ function gridDoubleGraph(svg){
     svg.axisyInput.selectAll(".tick").each(function(){
         var transform = this.getAttribute("transform");
         svg.grid.append("line")
-          .attr("y2",0)
+          .attr("y2",-0.5)
+          .attr("y1",-0.5)
           .attr("x2",svg.width)
           .attr("transform",transform);
     });
@@ -3370,7 +3349,8 @@ function gridDoubleGraph(svg){
     svg.axisyOutput.selectAll(".tick").each(function(){
         var transform = this.getAttribute("transform");
         svg.grid.append("line")
-          .attr("y2",0)
+          .attr("y2",0.5)
+          .attr("y1",0.5)
           .attr("x2",svg.width)
           .attr("transform",transform);
     });
@@ -3803,7 +3783,7 @@ d3.select(window).on("keydown",function (){
 //drawChart("/dynamic/netProtocolesPackets.json?dd=2016-06-18%2011%3A44&df=2016-06-23%2011%3A44&pset=2", "Graph");
 //drawChart("/dynamic/netTop10NbExtHosts.json?dd=2016-06-20%2011%3A44&df=2016-06-23%2011%3A44&dh=2", "Graph");
 //drawChart("/dynamic/netTop10CountryTraffic.json?dd=2016-06-20%2011%3A44&df=2016-06-23%2011%3A44&dh=2", "Graph");
-//drawChart("./netTop10appTraffic.json", "Graph");
-drawChart("./netTop10NbExtHosts.json", "Graph");
+drawChart("./netTop10appTraffic.json", "Graph");
+//drawChart("./netTop10NbExtHosts.json", "Graph");
 //drawChart("./netNbLocalHosts.json", "Graph");
 //drawChart("worldmap.json","Graph");
