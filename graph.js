@@ -83,6 +83,8 @@ function createHisto2DStackDouble(div,svg,urlJson,mydiv){
         //table for legend
         svg.tableWidth = 200;
 
+        console.log(getComputedStyle(d3.select("div").node()).height);
+
 
         var divWidth = Math.max(1.15 * svg.tableWidth + svg.margin.left + svg.margin.right + 1, parseInt(div.style("width"), 10)),
           divHeight = Math.max(svg.margin.bottom + svg.margin.top + svg.margin.zero + 1, window.innerHeight);
@@ -336,48 +338,36 @@ function createHisto2DStackDouble(div,svg,urlJson,mydiv){
         //Here, the grid, after the rectInput & the text
         svg.grid = svg.chartBackground.append("g").classed("grid", true);
 
-        var dataWidth = 0.75 * (svg.x(svg.x.domain()[0] + 1) - svg.x.range()[0]);
+
+
+        svg.newX = d3.scaleLinear().range(svg.x.range()).domain(svg.x.domain());
+        svg.newYOutput = d3.scaleLinear().range(svg.yOutput.range()).domain(svg.yOutput.domain());
+        svg.newYInput = d3.scaleLinear().range(svg.yInput.range()).domain(svg.yInput.domain());
+
         var selectionIn = svg.chartInput.selectAll(".data")
           .data(svg.valuesIn)
           .enter().append("rect")
           .classed("data", true)
-          .attr("x", function (d) {
-              return svg.x(d.x - 0.375);
-          })
-          .attr("y", function (d) {
-              return svg.yInput(d.y);
-          })
-          .attr("height", function (d) {
-              return svg.yInput(d.height) - svg.yInput.range()[0];
-          })
-          .attr("width", dataWidth)
           .attr("fill", function (d) {
               return colorMap.get(d.item);
           })
           .attr("stroke", function (d) {
-              return d.stroke
+              return d.stroke;
           });
 
         var selectionOut = svg.chartOutput.selectAll(".data")
           .data(svg.valuesOut)
           .enter().append("rect")
           .classed("data", true)
-          .attr("x", function (d) {
-              return svg.x(d.x - 0.375);
-          })
-          .attr("y", function (d) {
-              return svg.yOutput(d.y);
-          })
-          .attr("height", function (d) {
-              return svg.yOutput.range()[0] - svg.yOutput(d.height);
-          })
-          .attr("width", dataWidth)
           .attr("fill", function (d) {
               return colorMap.get(d.item);
           })
           .attr("stroke", function (d) {
-              return d.stroke
+              return d.stroke;
           });
+
+
+        drawChartDouble(svg,svg.yOutput.range()[0],svg.yInput.range()[0]);
 
         var selection = svg.selectAll(".data");
 
@@ -519,40 +509,34 @@ function createHisto2DStackDouble(div,svg,urlJson,mydiv){
         svg.axisx = svg.append("g")
           .attr("class", "axis")
           .attr('transform', 'translate(' + [svg.margin.left, svg.heightOutput + svg.margin.top] + ")");
-        svg.axisx.append("rect").classed("rectAxis", true).attr("width", svg.width).attr("height", svg.margin.zero -1).attr("y",0.5);
 
+        svg.axisx.rect = svg.axisx.append("rect").classed("rectAxis", true).attr("height", svg.margin.zero - 1 ).attr("y",0.5);
+        svg.axisx.path = svg.axisx.append("path");
         svg.axisx.call(d3.axisBottom(svg.x));
         svg.heightTick = svg.axisx.select(".tick").select("line").attr("y2");
-        svg.axisx.path = svg.axisx.append("path").attr("d", "M0.5," + (svg.margin.zero - svg.heightTick) + "V" + (svg.margin.zero - 0.5)+ "H" + (svg.width + 0.5)+ "V" + (svg.margin.zero - svg.heightTick))
 
-        svg.axisx.selectAll(".tick").classed("addedLine", true).append("line")
-          .attr("x1", 0)
-          .attr("y1", svg.margin.zero - svg.heightTick)
-          .attr("x2", 0)
-          .attr("y2", svg.margin.zero);
+        axisXDoubleDraw(svg);
 
-        svg.axisx.selectAll(".tick").select("text").text(function (d) {
-            if (Math.floor(d) != d) {
-                this.parentNode.remove();
-            } else {
-                return svg.legend[d % svg.legend.length].text;
-            }
-        });
+        ticksSecondAxisXDouble(svg);
+
+        axisXLegendDouble(svg);
 
 
         svg.axisyInput = svg.append("g").attr('transform', 'translate(' + [svg.margin.left, svg.margin.top - 1] + ')')
           .attr("class", "axis");
         svg.axisyInput.call(d3.axisLeft(svg.yInput));
 
+        niceTicks(svg.axisyInput);
 
         svg.axisyOutput = svg.append("g").attr('transform', 'translate(' + [svg.margin.left, svg.margin.top] + ')')
           .attr("class", "axis");
         svg.axisyOutput.call(d3.axisLeft(svg.yOutput));
 
+        niceTicks(svg.axisyOutput);
 
         gridDoubleGraph(svg);
 
-        //      Label of the y axis
+        //Label of the y axis
         svg.ylabel = svg.axisyInput.append("text")
           .attr("class", "label")
           .attr("text-anchor", "middle")
@@ -617,18 +601,14 @@ function createHisto2DStackDouble(div,svg,urlJson,mydiv){
         //zoom
 
 
-        svg.newX = d3.scaleLinear().range(svg.x.range()).domain(svg.x.domain());
-        svg.newYOutput = d3.scaleLinear().range(svg.yOutput.range()).domain(svg.yOutput.domain());
-        svg.newYInput = d3.scaleLinear().range(svg.yInput.range()).domain(svg.yInput.domain());
-
 
         addZoomDouble(svg, updateHisto1DStackDouble);
         d3.select(window).on("resize." + mydiv, function () {
             console.log("resize");
-          //  redrawHisto2DStackDouble(div, svg);
+            redrawHisto2DStackDouble(div, svg);
         });
 
-        //hideShowValuesDouble(svg, trSelec, selectionIn, selectionOut, xlength)
+        hideShowValuesDouble(svg, trSelec, selectionIn, selectionOut, xlength)
 
     });
 
@@ -1020,6 +1000,8 @@ function createHisto2DStackSimple(div,svg,urlJson,mydiv){
           .attr("class", "axis");
         svg.axisy.call(d3.axisLeft(svg.y));
 
+        niceTicks(svg.axisy);
+
         gridSimpleGraph(svg);
 
 
@@ -1330,124 +1312,128 @@ function hideShowValuesDouble(svg,trSelec,selectionIn,selectionOut,xlength){
     trSelec.on("click",function(d){
         var totalSumIn = [];
         var totalSumOut = [];
+        var clickedRow = d3.select(this);
 
-        var x;
-        var sum;
-        var i;
-
-        if(svg.popup.pieChart !==null){
-            return;
-        }
-
-        var index = hiddenValues.indexOf(d.item);
-
-        if( index === -1){
-            //Hide the data
-            hiddenValues.push(d.item);
-            d3.select(this).classed("hidden",true);
-
-
-
-            x=svg.valuesIn[0].x;
-            i=0;
-
-            while(x < xlength){
-                sum=0;
-                while(i <  newValuesIn.length && newValuesIn[i].x == x){
-                    if(newValuesIn[i].item === d.item){
-                        newValuesIn[i].height = 0;
-                    }
-                    newValuesIn[i].y = sum;
-                    sum += newValuesIn[i].height;
-                    i++;
-                }
-                totalSumIn.push(sum);
-                x++;
-            }
-
-            x = svg.valuesOut[0].x;
-            i=0;
-
-            while(x < xlength){
-                sum=0;
-
-                while(i <  newValuesOut.length && newValuesOut[i].x == x){
-                    if(newValuesOut[i].item === d.item){
-                        newValuesOut[i].height = 0;
-                    }
-                    sum += newValuesOut[i].height;
-                    newValuesOut[i].y = sum;
-                    i++;
-                }
-                totalSumOut.push(sum);
-                x++;
-            }
-
-
-        }else{
-            //Show the data
-            hiddenValues.splice(index,1);
-            d3.select(this).classed("hidden",false);
-
-
-            x=svg.valuesIn[0].x;
-            i=0;
-
-            while(x < xlength){
-                sum=0;
-                while(i <  newValuesIn.length && newValuesIn[i].x == x){
-                    if(newValuesIn[i].item === d.item){
-                        newValuesIn[i].height = svg.valuesIn[i].height;
-                    }
-                    newValuesIn[i].y = sum;
-                    sum += newValuesIn[i].height;
-                    i++;
-                }
-                totalSumIn.push(sum);
-                x++;
-            }
-
-            x = svg.valuesOut[0].x;
-            i=0;
-
-            while(x < xlength){
-                sum=0;
-
-                while(i <  newValuesOut.length && newValuesOut[i].x == x){
-                    if(newValuesOut[i].item === d.item){
-                        newValuesOut[i].height = svg.valuesOut[i].height;
-                    }
-                    sum += newValuesOut[i].height;
-                    newValuesOut[i].y = sum;
-                    i++;
-                }
-                totalSumOut.push(sum);
-                x++;
-            }
-
-
-        }
-
-
-
-        var newTotalIn;
-        var newTotalOut;
-
-        if(hiddenValues.length === trSelecSize){
-            newTotalIn=1;
-            newTotalOut=1;
-        }else{
-            newTotalIn=d3.max(totalSumIn);
-            newTotalOut=d3.max(totalSumOut);
-        }
-
-        var oldTotalIn = svg.yInput.domain()[1]/1.1;
-        var oldTotalOut = svg.yOutput.domain()[1]/1.1;
-
-        var valuesInStart = JSON.parse(JSON.stringify(valuesInTrans));
-        var valuesOutStart = JSON.parse(JSON.stringify(valuesOutTrans));
 
         svg.transition("hideshow").duration(duration).tween("",function(){
+
+            var x;
+            var sum;
+            var i;
+
+            if(svg.popup.pieChart !==null){
+                return;
+            }
+
+            var index = hiddenValues.indexOf(d.item);
+
+            if( index === -1){
+                //Hide the data
+                hiddenValues.push(d.item);
+                clickedRow.classed("hidden",true);
+
+
+
+                x=svg.valuesIn[0].x;
+                i=0;
+
+                while(x < xlength){
+                    sum=0;
+                    while(i <  newValuesIn.length && newValuesIn[i].x == x){
+                        if(newValuesIn[i].item === d.item){
+                            newValuesIn[i].height = 0;
+                        }
+                        newValuesIn[i].y = sum;
+                        sum += newValuesIn[i].height;
+                        i++;
+                    }
+                    totalSumIn.push(sum);
+                    x++;
+                }
+
+                x = svg.valuesOut[0].x;
+                i=0;
+
+                while(x < xlength){
+                    sum=0;
+
+                    while(i <  newValuesOut.length && newValuesOut[i].x == x){
+                        if(newValuesOut[i].item === d.item){
+                            newValuesOut[i].height = 0;
+                        }
+                        sum += newValuesOut[i].height;
+                        newValuesOut[i].y = sum;
+                        i++;
+                    }
+                    totalSumOut.push(sum);
+                    x++;
+                }
+
+
+            }else{
+                //Show the data
+                hiddenValues.splice(index,1);
+                clickedRow.classed("hidden",false);
+
+
+                x=svg.valuesIn[0].x;
+                i=0;
+
+                while(x < xlength){
+                    sum=0;
+                    while(i <  newValuesIn.length && newValuesIn[i].x == x){
+                        if(newValuesIn[i].item === d.item){
+                            newValuesIn[i].height = svg.valuesIn[i].height;
+                        }
+                        newValuesIn[i].y = sum;
+                        sum += newValuesIn[i].height;
+                        i++;
+                    }
+                    totalSumIn.push(sum);
+                    x++;
+                }
+
+                x = svg.valuesOut[0].x;
+                i=0;
+
+                while(x < xlength){
+                    sum=0;
+
+                    while(i <  newValuesOut.length && newValuesOut[i].x == x){
+                        if(newValuesOut[i].item === d.item){
+                            newValuesOut[i].height = svg.valuesOut[i].height;
+                        }
+                        sum += newValuesOut[i].height;
+                        newValuesOut[i].y = sum;
+                        i++;
+                    }
+                    totalSumOut.push(sum);
+                    x++;
+                }
+
+
+            }
+
+
+
+            var newTotalIn;
+            var newTotalOut;
+
+            if(hiddenValues.length === trSelecSize){
+                newTotalIn=1;
+                newTotalOut=1;
+            }else{
+                newTotalIn=d3.max(totalSumIn);
+                newTotalOut=d3.max(totalSumOut);
+            }
+
+            var oldTotalIn = svg.yInput.domain()[1]/1.1;
+            var oldTotalOut = svg.yOutput.domain()[1]/1.1;
+
+            var valuesInStart = JSON.parse(JSON.stringify(valuesInTrans));
+            var valuesOutStart = JSON.parse(JSON.stringify(valuesOutTrans));
+
+
             var t0,totalInTrans, totalOutTrans;
 
             return function(t){
@@ -1468,19 +1454,19 @@ function hideShowValuesDouble(svg,trSelec,selectionIn,selectionOut,xlength){
 
                 totalInTrans = oldTotalIn* t0 + newTotalIn*t;
                 totalOutTrans = oldTotalOut*t0 + newTotalOut*t;
-                var actTranslate1 = -svg.translate[1]/(svg.scaley*svg.scale);
+                var actTranslate1 = -svg.transform.y/(svg.scaley*svg.transform.k);
                 svg.heightOutput = (svg.height - svg.margin.zero)*totalOutTrans/(totalInTrans+totalOutTrans);
                 svg.yInput.range([svg.heightOutput+svg.margin.zero,svg.height]);
                 svg.yOutput.range([svg.heightOutput,0]);
                 svg.yInput.domain([0,totalInTrans*1.1]);
                 svg.yOutput.domain([0,totalOutTrans*1.1]);
-                svg.newYOutput.range([Math.min(svg.height,Math.max(0,svg.heightOutput*svg.scale*svg.scaley+svg.translate[1])),0]);
-                svg.newYInput.range([Math.min(svg.height,Math.max(0,svg.heightOutput*svg.scale*svg.scaley+svg.translate[1] + svg.margin.zero)),svg.height]);
-                svg.newYOutput.domain([svg.yOutput.invert(svg.height/(svg.scale*svg.scaley) + actTranslate1),
+                svg.newYOutput.range([Math.min(svg.height,Math.max(0,svg.heightOutput*svg.transform.k*svg.scaley+svg.transform.y)),0]);
+                svg.newYInput.range([Math.min(svg.height,Math.max(0,svg.heightOutput*svg.transform.k*svg.scaley+svg.transform.y + svg.margin.zero)),svg.height]);
+                svg.newYOutput.domain([svg.yOutput.invert(svg.height/(svg.transform.k*svg.scaley) + actTranslate1),
                     svg.yOutput.invert(actTranslate1)]);
 
-                svg.newYInput.domain([svg.yInput.invert(actTranslate1  + (1-1/(svg.scale*svg.scaley))*svg.margin.zero),
-                    svg.yInput.invert(actTranslate1 + (1-1/(svg.scale*svg.scaley))*svg.margin.zero + svg.height/(svg.scale*svg.scaley))]);
+                svg.newYInput.domain([svg.yInput.invert(actTranslate1  + (1-1/(svg.transform.k*svg.scaley))*svg.margin.zero),
+                    svg.yInput.invert(actTranslate1 + (1-1/(svg.transform.k*svg.scaley))*svg.margin.zero + svg.height/(svg.transform.k*svg.scaley))]);
 
 
                 updateHisto1DStackDouble(svg);
@@ -1500,125 +1486,128 @@ function hideShowValuesDouble(svg,trSelec,selectionIn,selectionOut,xlength){
 
         var totalSumIn = [];
         var totalSumOut = [];
-
-        var x;
-        var sum;
-        var i;
-
-        if (svg.popup.pieChart !== null) {
-            return;
-        }
-
-        var index = hiddenValues.indexOf(d.item);
-
-
-        if ((index !== -1) || (trSelecSize - 1 !== hiddenValues.length )) {
-
-            //Hide all data except this one
-            hiddenValues = trSelec.data().map(function (elem) {
-                return elem.item;
-            });
-            hiddenValues.splice(hiddenValues.indexOf(d.item), 1);
-
-            trSelec.classed("hidden", true);
-            d3.select(this).classed("hidden", false);
-
-
-
-            x=svg.valuesIn[0].x;
-            i=0;
-
-            while(x < xlength){
-                sum=0;
-                while(i <  newValuesIn.length && newValuesIn[i].x == x){
-                    if(newValuesIn[i].item !== d.item){
-                        newValuesIn[i].height = 0;
-                    }else{
-                        newValuesIn[i].height = svg.valuesIn[i].height;
-                    }
-                    newValuesIn[i].y = sum;
-                    sum += newValuesIn[i].height;
-                    i++;
-                }
-                totalSumIn.push(sum);
-                x++;
-            }
-
-            x = svg.valuesOut[0].x;
-            i=0;
-
-            while(x < xlength){
-                sum=0;
-
-                while(i <  newValuesOut.length && newValuesOut[i].x == x){
-                    if(newValuesOut[i].item !== d.item){
-                        newValuesOut[i].height = 0;
-                    }else{
-                        newValuesOut[i].height = svg.valuesOut[i].height;
-                    }
-
-                    sum += newValuesOut[i].height;
-                    newValuesOut[i].y = sum;
-                    i++;
-                }
-                totalSumOut.push(sum);
-                x++;
-            }
-
-
-        } else {
-            //index === -1 && hiddenValues.length == trSelec.size() -1
-            // ->show all data.
-            hiddenValues = [];
-            trSelec.classed("hidden", false);
-
-            x=svg.valuesIn[0].x;
-            i=0;
-
-            while(x < xlength){
-                sum=0;
-                while(i <  newValuesIn.length && newValuesIn[i].x == x){
-                    newValuesIn[i].height = svg.valuesIn[i].height;
-                    newValuesIn[i].y = sum;
-                    sum += newValuesIn[i].height;
-                    i++;
-                }
-                totalSumIn.push(sum);
-                x++;
-            }
-
-            x = svg.valuesOut[0].x;
-            i=0;
-
-            while(x < xlength){
-                sum=0;
-
-                while(i <  newValuesOut.length && newValuesOut[i].x == x){
-
-                    newValuesOut[i].height = svg.valuesOut[i].height;
-                    sum += newValuesOut[i].height;
-                    newValuesOut[i].y = sum;
-                    i++;
-                }
-                totalSumOut.push(sum);
-                x++;
-            }
-
-
-        }
-
-
-
-        var newTotalIn = Math.max(0.000000001,d3.max(totalSumIn));
-        var newTotalOut = Math.max(0.000000001,d3.max(totalSumOut));
-
-        var oldTotalIn = svg.yInput.domain()[1]/1.1;
-        var oldTotalOut = svg.yOutput.domain()[1]/1.1;
-
-        var valuesInStart = JSON.parse(JSON.stringify(valuesInTrans));
-        var valuesOutStart = JSON.parse(JSON.stringify(valuesOutTrans));
+        var clickedRow = d3.select(this);
 
         svg.transition("hideshow").duration(duration).tween("",function(){
+
+
+            var x;
+            var sum;
+            var i;
+
+            if (svg.popup.pieChart !== null) {
+                return;
+            }
+
+            var index = hiddenValues.indexOf(d.item);
+
+
+            if ((index !== -1) || (trSelecSize - 1 !== hiddenValues.length )) {
+
+                //Hide all data except this one
+                hiddenValues = trSelec.data().map(function (elem) {
+                    return elem.item;
+                });
+                hiddenValues.splice(hiddenValues.indexOf(d.item), 1);
+
+                trSelec.classed("hidden", true);
+                clickedRow.classed("hidden", false);
+
+
+
+                x=svg.valuesIn[0].x;
+                i=0;
+
+                while(x < xlength){
+                    sum=0;
+                    while(i <  newValuesIn.length && newValuesIn[i].x == x){
+                        if(newValuesIn[i].item !== d.item){
+                            newValuesIn[i].height = 0;
+                        }else{
+                            newValuesIn[i].height = svg.valuesIn[i].height;
+                        }
+                        newValuesIn[i].y = sum;
+                        sum += newValuesIn[i].height;
+                        i++;
+                    }
+                    totalSumIn.push(sum);
+                    x++;
+                }
+
+                x = svg.valuesOut[0].x;
+                i=0;
+
+                while(x < xlength){
+                    sum=0;
+
+                    while(i <  newValuesOut.length && newValuesOut[i].x == x){
+                        if(newValuesOut[i].item !== d.item){
+                            newValuesOut[i].height = 0;
+                        }else{
+                            newValuesOut[i].height = svg.valuesOut[i].height;
+                        }
+
+                        sum += newValuesOut[i].height;
+                        newValuesOut[i].y = sum;
+                        i++;
+                    }
+                    totalSumOut.push(sum);
+                    x++;
+                }
+
+
+            } else {
+                //index === -1 && hiddenValues.length == trSelec.size() -1
+                // ->show all data.
+                hiddenValues = [];
+                trSelec.classed("hidden", false);
+
+                x=svg.valuesIn[0].x;
+                i=0;
+
+                while(x < xlength){
+                    sum=0;
+                    while(i <  newValuesIn.length && newValuesIn[i].x == x){
+                        newValuesIn[i].height = svg.valuesIn[i].height;
+                        newValuesIn[i].y = sum;
+                        sum += newValuesIn[i].height;
+                        i++;
+                    }
+                    totalSumIn.push(sum);
+                    x++;
+                }
+
+                x = svg.valuesOut[0].x;
+                i=0;
+
+                while(x < xlength){
+                    sum=0;
+
+                    while(i <  newValuesOut.length && newValuesOut[i].x == x){
+
+                        newValuesOut[i].height = svg.valuesOut[i].height;
+                        sum += newValuesOut[i].height;
+                        newValuesOut[i].y = sum;
+                        i++;
+                    }
+                    totalSumOut.push(sum);
+                    x++;
+                }
+
+
+            }
+
+
+
+            var newTotalIn = Math.max(0.000000001,d3.max(totalSumIn));
+            var newTotalOut = Math.max(0.000000001,d3.max(totalSumOut));
+
+            var oldTotalIn = svg.yInput.domain()[1]/1.1;
+            var oldTotalOut = svg.yOutput.domain()[1]/1.1;
+
+            var valuesInStart = JSON.parse(JSON.stringify(valuesInTrans));
+            var valuesOutStart = JSON.parse(JSON.stringify(valuesOutTrans));
+
             var t0,totalInTrans, totalOutTrans;
 
             return function(t){
@@ -1639,19 +1628,19 @@ function hideShowValuesDouble(svg,trSelec,selectionIn,selectionOut,xlength){
 
                 totalInTrans = oldTotalIn* t0 + newTotalIn*t;
                 totalOutTrans = oldTotalOut*t0 + newTotalOut*t;
-                var actTranslate1 = -svg.translate[1]/(svg.scaley*svg.scale);
+                var actTranslate1 = -svg.transform.y/(svg.scaley*svg.transform.k);
                 svg.heightOutput = (svg.height - svg.margin.zero)*totalOutTrans/(totalInTrans+totalOutTrans);
                 svg.yInput.range([svg.heightOutput+svg.margin.zero,svg.height]);
                 svg.yOutput.range([svg.heightOutput,0]);
                 svg.yInput.domain([0,totalInTrans*1.1]);
                 svg.yOutput.domain([0,totalOutTrans*1.1]);
-                svg.newYOutput.range([Math.min(svg.height,Math.max(0,svg.heightOutput*svg.scale*svg.scaley+svg.translate[1])),0]);
-                svg.newYInput.range([Math.min(svg.height,Math.max(0,svg.heightOutput*svg.scale*svg.scaley+svg.translate[1] + svg.margin.zero)),svg.height]);
-                svg.newYOutput.domain([svg.yOutput.invert(svg.height/(svg.scale*svg.scaley) + actTranslate1),
+                svg.newYOutput.range([Math.min(svg.height,Math.max(0,svg.heightOutput*svg.transform.k*svg.scaley+svg.transform.y)),0]);
+                svg.newYInput.range([Math.min(svg.height,Math.max(0,svg.heightOutput*svg.transform.k*svg.scaley+svg.transform.y + svg.margin.zero)),svg.height]);
+                svg.newYOutput.domain([svg.yOutput.invert(svg.height/(svg.transform.k*svg.scaley) + actTranslate1),
                     svg.yOutput.invert(actTranslate1)]);
 
-                svg.newYInput.domain([svg.yInput.invert(actTranslate1  + (1-1/(svg.scale*svg.scaley))*svg.margin.zero),
-                    svg.yInput.invert(actTranslate1 + (1-1/(svg.scale*svg.scaley))*svg.margin.zero + svg.height/(svg.scale*svg.scaley))]);
+                svg.newYInput.domain([svg.yInput.invert(actTranslate1  + (1-1/(svg.transform.k*svg.scaley))*svg.margin.zero),
+                    svg.yInput.invert(actTranslate1 + (1-1/(svg.transform.k*svg.scaley))*svg.margin.zero + svg.height/(svg.transform.k*svg.scaley))]);
 
 
                 updateHisto1DStackDouble(svg);
@@ -1710,6 +1699,9 @@ function updateHisto1DStackSimple(svg){
     });
 
     svg.axisy.call(d3.axisLeft(svg.newY));
+
+    niceTicks(svg.axisy);
+
     gridSimpleGraph(svg);
 
 }
@@ -1721,10 +1713,9 @@ function updateHisto1DStackSimple(svg){
 
 
 function updateHisto1DStackDouble(svg){
+
 /*
-
     svg.chartOutput.attr("transform","matrix(" + (svg.scalex*svg.scale) + ", 0, 0, " + (svg.scaley*svg.scale) + ", " + svg.translate[0] + "," + svg.translate[1] + ")" );
-
     svg.chartInput.attr("transform","matrix(" + (svg.scalex*svg.scale) + ", 0, 0, " + (svg.scaley*svg.scale) + ", " + svg.translate[0] + "," + (svg.translate[1] - (svg.scaley*svg.scale-1)*svg.margin.zero) + ")" );
 */
 
@@ -1744,75 +1735,31 @@ function updateHisto1DStackDouble(svg){
         ((svg.height + Math.max(0,newHOmarg)/3) *0.75) + ")");
 
 
-    var dataWidth = 0.75*(svg.newX(svg.newX.domain()[0] + 1) - svg.newX.range()[0]);
-
-    svg.chartInput.selectAll(".data")
-      .attr("x",function(d){return svg.newX(d.x - 0.375);})
-      .attr("y", function(d){return svg.newYInput(d.y);})
-      .attr("height", function(d){return svg.newYInput(d.height) - newHOmarg;})
-      .attr("width", dataWidth);
-
-
-
-
-    svg.chartOutput.selectAll(".data")
-      .attr("x",function(d){return svg.newX(d.x - 0.375);})
-      .attr("y", function(d){return svg.newYOutput(d.y);})
-      .attr("height", function(d){return newHeightOutput - svg.newYOutput(d.height);})
-      .attr("width", dataWidth);
-
+    drawChartDouble(svg,newHeightOutput,newHOmarg);
 
     svg.axisx.call(d3.axisBottom(svg.newX));
 
-    svg.axisx.selectAll(".tick").filter(function(){return !d3.select(this).classed("addedLine");}).classed("addedLine",true).append("line")
-        .attr("x1",0)
-        .attr("y1",svg.margin.zero - svg.heightTick)
-        .attr("x2",0)
-        .attr("y2",svg.margin.zero);
+    ticksSecondAxisXDouble(svg);
 
-    svg.axisx.selectAll(".tick").select("text").text(function(d){
-        if (Math.floor(d) != d){
-            this.parentNode.remove();
-        }else{
-            return svg.legend[d%svg.legend.length].text;
-        }
-    });
+    axisXLegendDouble(svg);
 
     svg.axisx.attr("transform","matrix(1, 0, 0, 1," + svg.margin.left+ "," + Math.min(svg.margin.top + svg.height,Math.max(svg.margin.top - svg.margin.zero,(svg.heightOutput)*svg.transform.k*svg.scaley +svg.margin.top + svg.transform.y)) + ")" );
 
 
     svg.axisyOutput.call(d3.axisLeft(svg.newYOutput));
 
+    niceTicks(svg.axisyOutput);
 
     svg.axisyInput.call(d3.axisLeft(svg.newYInput));
+
+    niceTicks(svg.axisyInput);
 
 
     gridDoubleGraph(svg);
 
 }
 
-/***********************************************************************************************************/
-//remove some ticks to avoid superimposition, for vertical axis
-//Automatic with d3v4.0, no more useful.
 
-function niceTicks(selectick){
-    var selecsize = selectick.size();
-
-    if(selecsize >1){
-        var distTick = Math.abs(selectick[0][0].getAttribute("transform").split(/[,)(]+/)[2]
-          - selectick[0][1].getAttribute("transform").split(/[,)(]+/)[2]);
-        var fontsize = parseFloat(getComputedStyle(selectick[0][0]).fontSize);
-        var nb = Math.ceil(fontsize/distTick);
-        if (nb>1){
-            for (var i=1; i<selecsize;i++){
-                if(i%nb !=0){
-                    selectick[0][i].remove();
-                }
-            }
-        }
-
-    }
-}
 
 /***********************************************************************************************************/
 
@@ -1825,14 +1772,14 @@ function addZoomDouble(svg,updateFunction){
 
     //Scales to update the current view (if not already implemented for specific reasons)
     if(svg.newX == undefined){
-        svg.newX = d3.scaleLinear().range(svg.x.range()).clamp(true).domain(svg.x.domain());
+        svg.newX = d3.scaleLinear().range(svg.x.range()).domain(svg.x.domain());
     }
     if(svg.newYOutput == undefined) {
-        svg.newYOutput = d3.scaleLinear().range(svg.yOutput.range()).clamp(true).domain(svg.yOutput.domain());
+        svg.newYOutput = d3.scaleLinear().range(svg.yOutput.range()).domain(svg.yOutput.domain());
     }
 
     if(svg.newYInput == undefined) {
-        svg.newYInput = d3.scaleLinear().range(svg.yInput.range()).clamp(true).domain(svg.yInput.domain());
+        svg.newYInput = d3.scaleLinear().range(svg.yInput.range()).domain(svg.yInput.domain());
     }
 
     //Selection rectangle for zooming (if not already implemented for better display control)
@@ -2116,8 +2063,8 @@ function redrawHisto2DStackDouble(div,svg){
     var oldheightoutput = svg.heightOutput;
 
     
-    var margIncTransl = Math.max(-svg.margin.zero,Math.min(svg.translate[1] + (svg.scale*svg.scaley)*oldheightoutput,0));
-    var margInView = Math.max(-svg.margin.zero,Math.min((svg.translate[1]-oldsvgheight) + (svg.scale*svg.scaley)*oldheightoutput,0)) - margIncTransl;
+    var margIncTransl = Math.max(-svg.margin.zero,Math.min(svg.transform.y + (svg.transform.k*svg.scaley)*oldheightoutput,0));
+    var margInView = Math.max(-svg.margin.zero,Math.min((svg.transform.y-oldsvgheight) + (svg.transform.k*svg.scaley)*oldheightoutput,0)) - margIncTransl;
 
     var oldheightData = svg.heightData;
     svg.heightData = svg.height - svg.margin.zero;
@@ -2140,10 +2087,7 @@ function redrawHisto2DStackDouble(div,svg){
 
     svg.rectInput.attr("width",svg.width);
 
-
-    svg.axisx.select(".rectAxis").attr("width",svg.width);
-
-    svg.axisx.path.attr("d", "M0," + (svg.margin.zero - svg.heightTick) + "V" + svg.margin.zero + "H" + svg.width + "V" + (svg.margin.zero-svg.heightTick))
+    axisXDoubleDraw(svg);
 
     svg.ylabel.attr("x",- svg.height/2).attr('y',- svg.margin.left);
 
@@ -2152,27 +2096,27 @@ function redrawHisto2DStackDouble(div,svg){
 
 
     console.log("marincltransl " + margIncTransl);
-    svg.translate[1] = (svg.translate[1] - margIncTransl) * (svg.height + margInView)/(oldsvgheight + margInView) + margIncTransl;
-    svg.translate[0] = svg.translate[0]*ratiox;
+    svg.transform.y = (svg.transform.y - margIncTransl) * (svg.height + margInView)/(oldsvgheight + margInView) + margIncTransl;
+    svg.transform.x *= ratiox;
 
-    var oldscaleytot = svg.scale*svg.scaley;
+    var oldscaleytot = svg.transform.k*svg.scaley;
 
     var scaleytot = oldscaleytot * (svg.height + margInView) * oldheightData / (svg.heightData * (oldsvgheight + margInView)) ;
  
-    var scalextot = svg.scale*svg.scalex;
+    var scalextot = svg.transform.k*svg.scalex;
  
-    svg.scale = Math.max(scalextot,scaleytot);
-    svg.scalex = scalextot/svg.scale;
-    svg.scaley = scaleytot/svg.scale;
- 
-    svg.zoom.scale(svg.scale);
-
+    svg.transform.k = Math.max(scalextot,scaleytot);
+    svg.scalex = scalextot/svg.transform.k;
+    svg.scaley = scaleytot/svg.transform.k;
 
     svg.newX.range([0,svg.width]);
-    svg.newYOutput.range([Math.min(svg.height,Math.max(0,svg.heightOutput*svg.scale*svg.scaley+svg.translate[1])),0]);
-    svg.newYInput.range([Math.min(svg.height,Math.max(0,svg.heightOutput*svg.scale*svg.scaley+svg.translate[1] + svg.margin.zero)),svg.height]);
-    svg.zoom.translate(svg.translate);
-    console.log("redraw translate1 " + svg.translate[1]);
+    svg.newYOutput.range([Math.min(svg.height,Math.max(0,svg.heightOutput*scaleytot+svg.transform.y)),0]);
+    svg.newYInput.range([Math.min(svg.height,Math.max(0,svg.heightOutput*scaleytot+svg.transform.y + svg.margin.zero)),svg.height]);
+
+
+    svg._groups[0][0].__zoom.k =svg.transform.k;
+    svg._groups[0][0].__zoom.x =svg.transform.x;
+    svg._groups[0][0].__zoom.y =svg.transform.y;
 
     updateHisto1DStackDouble(svg);
 
@@ -2180,27 +2124,34 @@ function redrawHisto2DStackDouble(div,svg){
     svg.side = 0.75*Math.min(svg.height,svg.width);
     svg.pieside = 1*svg.side;
 
-    svg.popup.style({"width":svg.side + "px","height":svg.side + "px",
-        "left":((svg.width-svg.side)/2 +svg.margin.left)+"px" ,"top": ((svg.height-svg.side)/2 +svg.margin.top) + "px"});
+    svg.popup.style("width",svg.side + "px")
+      .style("height",svg.side + "px")
+      .style("left",((svg.width-svg.side)/2 +svg.margin.left)+"px")
+      .style("top", ((svg.height-svg.side)/2 +svg.margin.top) + "px");
+
+
 
     if(svg.popup.pieChart != null){
         svg.popup.pieChart.attr("width", svg.pieside).attr("height", svg.pieside);
         var chartside = 0.75*svg.pieside;
         svg.popup.innerRad = 0;
         svg.popup.outerRad = chartside/2;
-        svg.popup.g.attr("transform","translate(" + (svg.pieside/2) + "," + (svg.pieside/2) + ")");
+        svg.popup.pieChart.g.attr("transform","translate(" + (svg.pieside/2) + "," + (svg.pieside/2) + ")");
 
-        var arc = d3.svg.arc()
+
+        var arc = d3.arc()
           .innerRadius(svg.popup.innerRad)
           .outerRadius(svg.popup.outerRad)
           .startAngle(function(d){return d.startAngle})
           .endAngle(function(d){return d.endAngle});
 
-        svg.popup.pieParts.attr("d",arc);
-        svg.popup.pieText.attr("transform",function(d){
-              var midAngle = (d.endAngle + d.startAngle)/2;
-              var dist = svg.popup.outerRad * 0.8;
-              return "translate(" + (Math.sin(midAngle)*dist) + "," +(-Math.cos(midAngle)*dist) +")";});
+
+        svg.popup.pieChart.g.selectAll("path").attr("d",arc);
+        svg.popup.pieChart.g.selectAll("text").attr("transform",function(d){
+            var midAngle = (d.endAngle + d.startAngle)/2;
+            var dist = svg.popup.outerRad * 0.8;
+            return "translate(" + (Math.sin(midAngle)*dist) + "," +(-Math.cos(midAngle)*dist) +")";});
+
 
         svg.popup.dist = svg.popup.outerRad * 0.8;
         svg.popup.distTranslTemp = svg.popup.outerRad/4;
@@ -3248,6 +3199,8 @@ function updateCurve(svg){
 
     svg.axisy.call(d3.axisLeft(svg.newY));
 
+    niceTicks(svg.axisy);
+
     legendCurveAxisX(svg);
 
     gridSimpleGraph(svg,true);
@@ -3512,10 +3465,10 @@ function createMap(div,svg,urlJson,mydiv){
 
 
         //A duplicate map is created and translated next to the other, outside viewport
-        //The -1 operation avoid a little visible cut where the 2 maps meet.
+        //The .99991 operation avoid a little cut to be too visible where the 2 maps meet.
 
         svg.map2 = d3.select(svg.maps.node().appendChild(svg.map.node().cloneNode(true)))
-          .attr("transform","matrix(1, 0, 0,1," + (svg.width - 1) + ", 0)");
+          .attr("transform","matrix(1, 0, 0,1," + (0.99991*svg.width) + ", 0)");
 
         //the data are binded to the second map (may be useful later)
 
@@ -3686,43 +3639,19 @@ function addZoomMap(svg){
     svg.transform = {k:1,x:0,y:0};
     var widthScale, scaleTotal, dashValue;
 
-    //TODO a supprimer
-    var event = {k:1,x:0,y:0};
 
     svg.zoom = d3.zoom().scaleExtent([1,20]).on("zoom",function(){
 
-        /*
-        console.log("2");
-        console.log(event);*/
-        //TEST TODO a supprimer
-        var lastevent = {k:event.k,x:event.x,y:event.y};
-
         //computation of useful values
-        event = d3.event.transform;
-        //TEST TODO a supprimer
-        svg.transform = {k:event.k,x:event.x,y:event.y};
-        /*
-        console.log("1");
-        console.log(event);
-        */
+        svg.transform = d3.event.transform;
 
         widthScale = svg.width*svg.transform.k;
         scaleTotal = svg.transform.k*svg.ratioProjectionScale;
         dashValue = svg.strokeDash/scaleTotal;
 
 
-        //TESTTESTTESTTESTTESTTESTTESTTEST TODO a supprimer
-        var calcCoord = [];
-        calcCoord[0] = -(svg.transform.x -lastevent.x*svg.transform.k/lastevent.k)/(svg.transform.k/lastevent.k -1);
-        calcCoord[1] = -(svg.transform.y -lastevent.y*svg.transform.k/lastevent.k)/(svg.transform.k/lastevent.k -1);
-        var mouse = d3.mouse(svg.svg.node());
-        console.log("x: " + (calcCoord[0] - mouse[0]).toFixed(5) + " y: " + (calcCoord[1] - mouse[1]).toFixed(5));
-
-
-
         //Evaluation of effective translation vectors
         //for "rotation" of the planisphere, svg.transform.x should always be in the [0,-widthScale] range.
-
         svg.transform.x = svg.transform.x - Math.ceil(svg.transform.x/widthScale)*widthScale;
         svg.transform.y = Math.min(0, Math.max(svg.transform.y,svg.height - svg.transform.k*svg.height));
 
@@ -3738,10 +3667,6 @@ function addZoomMap(svg){
 
 
 
-    })
-      .on("start",function(){
-        console.log("start");
-          event = {k:svg.transform.k,x:svg.transform.x,y:svg.transform.y};
     })
       .on("end",function(){
           svg.svg._groups[0][0].__zoom.k =svg.transform.k;
